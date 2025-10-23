@@ -1,0 +1,108 @@
+<resources>
+    <string name="app_name">OpportunityHub</string>
+    <string name="app_tagline">Your personalized opportunity tracker</string>
+
+    <!-- Authentication -->
+    <string name="welcome">Welcome to OpportunityHub</string>
+    <string name="login">Log In</string>
+    <string name="signup">Sign Up</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="full_name">Full Name</string>
+    <string name="grade">Grade Level</string>
+    <string name="gpa">GPA (optional)</string>
+    <string name="create_account">Create Account</string>
+    <string name="already_have_account">Already have an account? Log in</string>
+    <string name="dont_have_account">Don\'t have an account? Sign up</string>
+    <string name="logout">Log Out</string>
+
+    <!-- Interest Profiler -->
+    <string name="interest_profiler_title">What interests you?</string>
+    <string name="interest_profiler_subtitle">Select all that apply to get personalized recommendations</string>
+    <string name="continue_btn">Continue</string>
+    <string name="skip">Skip</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_browse">Browse</string>
+    <string name="nav_add">Add</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Dashboard -->
+    <string name="welcome_user">Welcome, %s!</string>
+    <string name="your_commitments">Your Commitments</string>
+    <string name="hours_this_week">%d hrs/week</string>
+    <string name="recommended_for_you">Recommended For You</string>
+    <string name="upcoming_deadlines">Upcoming Deadlines</string>
+    <string name="my_calendar">My Calendar</string>
+    <string name="time_breakdown">Time Breakdown</string>
+    <string name="no_commitments">No commitments yet. Start browsing!</string>
+
+    <!-- Browse -->
+    <string name="browse_opportunities">Browse Opportunities</string>
+    <string name="search_hint">Search opportunities...</string>
+    <string name="filter_by_subject">Filter by Subject</string>
+    <string name="filter_by_type">Filter by Type</string>
+    <string name="all_subjects">All Subjects</string>
+
+    <!-- Add Opportunity -->
+    <string name="add_opportunity">Add Opportunity</string>
+    <string name="add_opportunity_subtitle">Help your peers discover new opportunities</string>
+    <string name="opportunity_title">Title</string>
+    <string name="opportunity_description">Description</string>
+    <string name="opportunity_organization">Organization</string>
+    <string name="opportunity_website">Website</string>
+    <string name="opportunity_deadline">Deadline (optional)</string>
+    <string name="opportunity_cost">Cost</string>
+    <string name="select_category">Select Category</string>
+    <string name="select_subjects">Select Subjects</string>
+    <string name="submit_opportunity">Submit Opportunity</string>
+    <string name="opportunity_added">Opportunity added successfully!</string>
+
+    <!-- Opportunity Detail -->
+    <string name="add_to_commitments">Add to My Commitments</string>
+    <string name="remove_from_commitments">Remove from Commitments</string>
+    <string name="view_website">View Website</string>
+    <string name="share">Share</string>
+    <string name="details_tab">Details</string>
+    <string name="comments_tab">Comments</string>
+    <string name="organization">Organization</string>
+    <string name="deadline">Deadline</string>
+    <string name="cost">Cost</string>
+    <string name="time_commitment">Time Commitment</string>
+    <string name="requirements">Requirements</string>
+    <string name="benefits">Benefits</string>
+    <string name="contact_info">Contact Info</string>
+    <string name="transit_info">Transit Info</string>
+
+    <!-- Comments -->
+    <string name="comments_title">Student Insights</string>
+    <string name="add_comment">Share Your Experience</string>
+    <string name="comment_hint">What should other students know about this opportunity?</string>
+    <string name="your_name">Your Name (optional)</string>
+    <string name="post_comment">Post</string>
+    <string name="comment_posted">Comment posted!</string>
+    <string name="no_comments">No insights yet. Be the first to share!</string>
+    <string name="helpful">Helpful (%d)</string>
+
+    <!-- Profile -->
+    <string name="my_profile">My Profile</string>
+    <string name="edit_interests">Edit Interests</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="my_stats">My Stats</string>
+    <string name="total_commitments">Total Commitments</string>
+    <string name="hours_per_week">Hours per Week</string>
+    <string name="opportunities_completed">Completed</string>
+
+    <!-- General -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="done">Done</string>
+    <string name="loading">Loading...</string>
+    <string name="error">Something went wrong</string>
+    <string name="no_results">No opportunities found</string>
+    <string name="free">FREE</string>
+    <string name="required">Required</string>
+</resources>

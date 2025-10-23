@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base Colors -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- Modern Blue Gradient Theme - Professional & Educational -->
+    <color name="primary">#1E88E5</color>          <!-- Bright Blue -->
+    <color name="primary_dark">#1565C0</color>     <!-- Deep Blue -->
+    <color name="primary_light">#64B5F6</color>    <!-- Light Blue -->
+    <color name="accent">#00ACC1</color>           <!-- Cyan Accent -->
+    <color name="accent_light">#26C6DA</color>     <!-- Light Cyan -->
+
+    <!-- Background Colors - Clean & Minimal -->
+    <color name="background">#F8F9FA</color>       <!-- Soft White -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#ECEFF1</color>  <!-- Very Light Gray -->
+    <color name="card_background">#FFFFFF</color>
+
+    <!-- Text Colors - High Contrast -->
+    <color name="text_primary">#212121</color>     <!-- Almost Black -->
+    <color name="text_secondary">#616161</color>   <!-- Medium Gray -->
+    <color name="text_hint">#9E9E9E</color>        <!-- Light Gray -->
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Subject/Interest Colors - Cohesive Palette -->
+    <color name="subject_stem">#5E35B1</color>     <!-- Deep Purple -->
+    <color name="subject_arts">#E91E63</color>     <!-- Pink -->
+    <color name="subject_leadership">#FF6F00</color> <!-- Deep Orange -->
+    <color name="subject_service">#43A047</color>  <!-- Green -->
+    <color name="subject_athletics">#1E88E5</color> <!-- Blue -->
+    <color name="subject_business">#FDD835</color> <!-- Yellow -->
+    <color name="subject_healthcare">#00897B</color> <!-- Teal -->
+    <color name="subject_education">#8D6E63</color> <!-- Brown -->
+
+    <!-- Status Colors - Professional -->
+    <color name="status_interested">#42A5F5</color>
+    <color name="status_applied">#AB47BC</color>
+    <color name="status_accepted">#66BB6A</color>
+    <color name="status_participating">#26C6DA</color>
+    <color name="status_completed">#78909C</color>
+
+    <!-- Functional Colors -->
+    <color name="success">#4CAF50</color>          <!-- Green -->
+    <color name="warning">#FFA726</color>          <!-- Orange -->
+    <color name="error">#EF5350</color>            <!-- Red -->
+    <color name="info">#29B6F6</color>             <!-- Light Blue -->
+    <color name="free">#4CAF50</color>             <!-- Green for free opportunities -->
+
+    <!-- UI Elements -->
+    <color name="divider">#E0E0E0</color>
+    <color name="ripple">#20000000</color>
+    <color name="overlay">#80000000</color>
+
+    <!-- Legacy colors (for old layouts, badges are hidden) -->
+    <color name="featured">#FFA726</color>
+    <color name="hidden_gem">#AB47BC</color>
+    <color name="deadline_urgent">#EF5350</color>
+
+    <!-- Gradients (for code use) -->
+    <color name="gradient_start">#1E88E5</color>
+    <color name="gradient_end">#00ACC1</color>
+</resources>
