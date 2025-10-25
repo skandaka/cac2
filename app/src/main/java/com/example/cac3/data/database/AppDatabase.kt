@@ -25,9 +25,12 @@ import kotlinx.coroutines.launch
         SavedOpportunity::class,
         UserPreferences::class,
         User::class,
-        UserCommitment::class
+        UserCommitment::class,
+        com.example.cac3.data.model.Team::class,
+        com.example.cac3.data.model.TeamMember::class,
+        com.example.cac3.data.model.TeamRequest::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun savedOpportunityDao(): SavedOpportunityDao
     abstract fun userPreferencesDao(): UserPreferencesDao
     abstract fun userDao(): UserDao
+    abstract fun teamDao(): TeamDao
 
     companion object {
         @Volatile

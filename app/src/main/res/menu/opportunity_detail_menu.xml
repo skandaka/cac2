@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_success_probability"
+        android:title="Check Success Probability"
+        android:icon="@android:drawable/ic_menu_info_details"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_application_help"
+        android:title="Get Application Help"
+        android:icon="@android:drawable/ic_menu_help"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_generate_checklist"
+        android:title="Generate Application Checklist"
+        android:icon="@android:drawable/ic_menu_agenda"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_predict_deadline"
+        android:title="Predict Deadline (Rolling)"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        app:showAsAction="never" />
+
+</menu>

@@ -20,6 +20,7 @@ import com.example.cac3.data.model.Opportunity
 import com.example.cac3.data.model.OpportunityCategory
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -70,6 +71,16 @@ class BrowseFragment : Fragment() {
         recyclerView = view.findViewById(R.id.opportunitiesRecyclerView)
         resultsCountTextView = view.findViewById(R.id.resultsCountTextView)
         emptyStateLayout = view.findViewById(R.id.emptyStateLayout)
+
+        // Setup FAB for adding opportunities
+        val addFab = view.findViewById<ExtendedFloatingActionButton>(R.id.addOpportunityFab)
+        addFab.setOnClickListener {
+            // Navigate to AddOpportunityFragment
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, AddOpportunityFragment())
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     private fun setupRecyclerView() {

@@ -5,7 +5,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -15,6 +17,7 @@ import com.example.cac3.activities.OpportunityDetailActivity
 import com.example.cac3.adapter.CommitmentAdapter
 import com.example.cac3.adapter.CommitmentWithOpportunity
 import com.example.cac3.adapter.OpportunityAdapter
+import com.example.cac3.ai.AIManager
 import com.example.cac3.data.database.AppDatabase
 import com.example.cac3.data.model.Opportunity
 import com.example.cac3.util.AuthManager
@@ -27,6 +30,7 @@ class DashboardFragment : Fragment() {
 
     private lateinit var authManager: AuthManager
     private lateinit var database: AppDatabase
+    private lateinit var aiManager: AIManager
 
     private lateinit var welcomeTextView: TextView
     private lateinit var totalHoursTextView: TextView
@@ -34,6 +38,8 @@ class DashboardFragment : Fragment() {
     private lateinit var commitmentsRecyclerView: RecyclerView
     private lateinit var noCommitmentsTextView: TextView
     private lateinit var recommendationsRecyclerView: RecyclerView
+    private lateinit var recommendationsHeaderTextView: TextView
+    private lateinit var recommendationsLoadingBar: ProgressBar
     private lateinit var calendarView: android.widget.CalendarView
     private lateinit var selectedDateTextView: TextView
     private lateinit var calendarCommitmentsTextView: TextView
@@ -57,6 +63,7 @@ class DashboardFragment : Fragment() {
 
         authManager = AuthManager(requireContext())
         database = AppDatabase.getDatabase(requireContext())
+        aiManager = AIManager(requireContext())
 
         initializeViews(view)
         setupRecyclerViews()
@@ -80,16 +87,51 @@ class DashboardFragment : Fragment() {
     }
 
     private fun displayCommitmentsForDate(dateInMillis: Long) {
-        val commitmentsOnDate = allCommitments.filter { commitment ->
-            // Check if the commitment is active on this date
-            val startDate = commitment.commitment.startDate ?: 0L
-            val endDate = commitment.commitment.endDate ?: Long.MAX_VALUE
+        // Normalize the selected date to midnight
+        val selectedCal = java.util.Calendar.getInstance().apply {
+            timeInMillis = dateInMillis
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val normalizedDate = selectedCal.timeInMillis
 
-            dateInMillis >= startDate && dateInMillis <= endDate
+        val commitmentsOnDate = allCommitments.filter { commitment ->
+            val startDate = commitment.commitment.startDate
+            val endDate = commitment.commitment.endDate
+
+            // If no dates are set, show for all current commitments
+            if (startDate == null && endDate == null) {
+                // Show if commitment status is active (PARTICIPATING or ACCEPTED)
+                commitment.commitment.status == com.example.cac3.data.model.CommitmentStatus.PARTICIPATING ||
+                commitment.commitment.status == com.example.cac3.data.model.CommitmentStatus.ACCEPTED
+            } else if (startDate != null && endDate != null) {
+                // Normalize start and end dates to midnight for accurate comparison
+                val startCal = java.util.Calendar.getInstance().apply {
+                    timeInMillis = startDate
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                val endCal = java.util.Calendar.getInstance().apply {
+                    timeInMillis = endDate
+                    set(java.util.Calendar.HOUR_OF_DAY, 23)
+                    set(java.util.Calendar.MINUTE, 59)
+                    set(java.util.Calendar.SECOND, 59)
+                    set(java.util.Calendar.MILLISECOND, 999)
+                }
+
+                normalizedDate >= startCal.timeInMillis && normalizedDate <= endCal.timeInMillis
+            } else {
+                false // If only one date is set, don't show
+            }
         }
 
         if (commitmentsOnDate.isEmpty()) {
             calendarCommitmentsTextView.visibility = View.GONE
+            calendarCommitmentsTextView.text = "" // Clear text
         } else {
             calendarCommitmentsTextView.visibility = View.VISIBLE
             val commitmentsText = commitmentsOnDate.joinToString("\n") {
@@ -203,21 +245,68 @@ class DashboardFragment : Fragment() {
     private fun loadRecommendations() {
         lifecycleScope.launch {
             try {
-                val userInterests = authManager.getCurrentUserInterests() ?: ""
+                val userId = authManager.getCurrentUserId()
+                val user = if (userId != -1L) database.userDao().getUserById(userId) else null
                 val allOpportunities = database.opportunityDao().getAllOpportunities().value ?: emptyList()
 
-                // Simple recommendation: filter by user interests
-                val recommendations = getRecommendationsForUser(userInterests, allOpportunities)
-
-                recommendationAdapter.submitList(recommendations.take(10))
+                // Check if AI is configured
+                if (aiManager.isApiKeyConfigured() && user != null) {
+                    // Use AI-powered recommendations
+                    loadAIRecommendations(user, allOpportunities)
+                } else {
+                    // Fall back to basic recommendations
+                    val userInterests = authManager.getCurrentUserInterests() ?: ""
+                    val basicRecommendations = getBasicRecommendations(userInterests, allOpportunities)
+                    recommendationAdapter.submitList(basicRecommendations.take(10))
+                }
 
             } catch (e: Exception) {
                 e.printStackTrace()
+                Toast.makeText(
+                    requireContext(),
+                    "Error loading recommendations",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
 
-    private fun getRecommendationsForUser(
+    private suspend fun loadAIRecommendations(
+        user: com.example.cac3.data.model.User,
+        opportunities: List<Opportunity>
+    ) {
+        try {
+            // Show loading indicator (if you add one to the layout)
+            val result = aiManager.generateRecommendations(user, opportunities, maxResults = 10)
+
+            result.onSuccess { recommendations ->
+                val opportunityList = recommendations.map { it.opportunity }
+                recommendationAdapter.submitList(opportunityList)
+
+                Toast.makeText(
+                    requireContext(),
+                    "AI-powered recommendations loaded!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }.onFailure { error ->
+                // Fall back to basic recommendations on error
+                val userInterests = user.interests
+                val basicRecommendations = getBasicRecommendations(userInterests, opportunities)
+                recommendationAdapter.submitList(basicRecommendations.take(10))
+
+                Toast.makeText(
+                    requireContext(),
+                    "Using basic recommendations (AI failed: ${error.message})",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun getBasicRecommendations(
         interests: String,
         opportunities: List<Opportunity>
     ): List<Opportunity> {

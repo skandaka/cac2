@@ -33,6 +33,9 @@ interface UserDao {
     @Query("SELECT * FROM user_commitments WHERE userId = :userId ORDER BY addedAt DESC")
     fun getUserCommitments(userId: Long): LiveData<List<UserCommitment>>
 
+    @Query("SELECT * FROM user_commitments WHERE userId = :userId ORDER BY addedAt DESC")
+    suspend fun getUserCommitmentsSync(userId: Long): List<UserCommitment>
+
     @Query("SELECT SUM(hoursPerWeek) FROM user_commitments WHERE userId = :userId")
     suspend fun getTotalHoursPerWeek(userId: Long): Int?
 

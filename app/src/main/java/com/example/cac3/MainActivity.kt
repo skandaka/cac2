@@ -6,9 +6,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.cac3.activities.LoginActivity
 import com.example.cac3.fragments.AddOpportunityFragment
+import com.example.cac3.fragments.AnalyticsFragment
 import com.example.cac3.fragments.BrowseFragment
 import com.example.cac3.fragments.DashboardFragment
 import com.example.cac3.fragments.ProfileFragment
+import com.example.cac3.fragments.TeamsFragment
 import com.example.cac3.util.AuthManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -56,8 +58,12 @@ class MainActivity : AppCompatActivity() {
                     loadFragment(BrowseFragment())
                     true
                 }
-                R.id.nav_add -> {
-                    loadFragment(AddOpportunityFragment())
+                R.id.nav_analytics -> {
+                    loadFragment(AnalyticsFragment())
+                    true
+                }
+                R.id.nav_teams -> {
+                    loadFragment(TeamsFragment())
                     true
                 }
                 R.id.nav_profile -> {
