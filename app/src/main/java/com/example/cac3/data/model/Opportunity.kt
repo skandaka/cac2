@@ -86,9 +86,7 @@ data class Opportunity(
 
     // Metadata
     val tags: String? = null, // Comma-separated tags
-    val priority: Int = 0, // For sorting featured opportunities
-    val isHiddenGem: Boolean = false,
-    val isFeatured: Boolean = false,
+    val priority: Int = 0, // For sorting opportunities
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 ) : Parcelable

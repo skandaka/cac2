@@ -25,12 +25,6 @@ class OpportunityRepository(private val database: AppDatabase) {
     fun searchOpportunities(query: String): LiveData<List<Opportunity>> =
         opportunityDao.searchOpportunities(query)
 
-    fun getHiddenGems(limit: Int = 10): LiveData<List<Opportunity>> =
-        opportunityDao.getHiddenGems(limit)
-
-    fun getFeaturedOpportunities(limit: Int = 5): LiveData<List<Opportunity>> =
-        opportunityDao.getFeaturedOpportunities(limit)
-
     fun getUpcomingDeadlines(): LiveData<List<Opportunity>> =
         opportunityDao.getUpcomingDeadlines()
 

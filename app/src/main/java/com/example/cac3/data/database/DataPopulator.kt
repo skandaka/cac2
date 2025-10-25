@@ -16,7 +16,6 @@ class DataPopulator(private val database: AppDatabase) {
         opportunities.addAll(getCompetitions())
         opportunities.addAll(getEmploymentOpportunities())
         opportunities.addAll(getVolunteeringOpportunities())
-        opportunities.addAll(getColleges())
         opportunities.addAll(getClubs())
         opportunities.addAll(getHonorSocieties())
         opportunities.addAll(getSummerPrograms())
@@ -52,7 +51,6 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = true,
                 transitAccessible = true,
                 priority = 100,
-                isFeatured = true
             ),
 
             // Bank of America Student Leaders 2025
@@ -85,9 +83,7 @@ class DataPopulator(private val database: AppDatabase) {
                 benefits = "Paid internship, all-expenses-paid D.C. trip July 21-26, leadership development, college prep, networking",
                 tags = "leadership,internship,paid,service,nonprofit,Washington-DC",
                 isVirtual = false,
-                priority = 95,
-                isFeatured = true,
-                isHiddenGem = true
+                priority = 95
             ),
 
             // Intel ISEF 2025
@@ -114,7 +110,6 @@ class DataPopulator(private val database: AppDatabase) {
                 address = "Columbus, OH (2025 International Fair)",
                 isVirtual = false,
                 priority = 90,
-                isFeatured = true
             ),
 
             // MIT THINK Scholars
@@ -138,9 +133,7 @@ class DataPopulator(private val database: AppDatabase) {
                 tags = "STEM,research,MIT,funding,innovation",
                 address = "Cambridge, MA",
                 isVirtual = false,
-                priority = 92,
-                isFeatured = true,
-                isHiddenGem = true
+                priority = 92
             ),
 
             // Northwestern NHSI Cherubs Theater
@@ -197,7 +190,6 @@ class DataPopulator(private val database: AppDatabase) {
                 transitAccessible = true,
                 paceRoutes = "208,600",
                 priority = 88,
-                isHiddenGem = true
             ),
 
             // QuestBridge College Prep Scholars
@@ -221,9 +213,7 @@ class DataPopulator(private val database: AppDatabase) {
                 benefits = "Full scholarships to elite summer programs (Yale, UChicago, Stanford, Emory), \$1,000 Quest for Excellence Awards, college admissions support",
                 tags = "scholarships,low-income,college-prep,QuestBridge,summer-programs",
                 isVirtual = false,
-                priority = 98,
-                isFeatured = true,
-                isHiddenGem = true
+                priority = 98
             ),
 
             // HOBY Illinois
@@ -274,7 +264,6 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = true,
                 transitAccessible = true,
                 priority = 97,
-                isFeatured = true
             ),
 
             // QuestBridge National College Match
@@ -300,7 +289,6 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = true,
                 transitAccessible = true,
                 priority = 100,
-                isFeatured = true
             ),
 
             // Regeneron Science Talent Search
@@ -324,7 +312,6 @@ class DataPopulator(private val database: AppDatabase) {
                 tags = "STEM,research,science,seniors,prestigious,Regeneron",
                 isVirtual = false,
                 priority = 99,
-                isFeatured = true
             ),
 
             // Boys/Girls State Illinois
@@ -375,9 +362,7 @@ class DataPopulator(private val database: AppDatabase) {
                 tags = "STEM,research,UIUC,FREE,fellowship,competitive",
                 address = "Urbana-Champaign, IL",
                 isVirtual = false,
-                priority = 93,
-                isFeatured = true,
-                isHiddenGem = true
+                priority = 93
             ),
 
             // Fermilab Saturday Morning Physics
@@ -407,7 +392,6 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = true,
                 transitAccessible = true,
                 priority = 85,
-                isHiddenGem = true
             )
         )
     }
@@ -547,7 +531,6 @@ class DataPopulator(private val database: AppDatabase) {
                 transitAccessible = true,
                 paceRoutes = "208,554,905",
                 priority = 78,
-                isHiddenGem = true
             ),
 
             // Woodfield Mall Retailers
@@ -574,7 +557,6 @@ class DataPopulator(private val database: AppDatabase) {
                 paceRoutes = "208,554,604,606,697,905",
                 walkingDistance = "Direct access",
                 priority = 85,
-                isFeatured = true
             ),
 
             // Schaumburg Park District
@@ -660,9 +642,7 @@ class DataPopulator(private val database: AppDatabase) {
                 transitAccessible = true,
                 paceRoutes = "905",
                 walkingDistance = "Short walk from Route 905 stop",
-                priority = 95,
-                isFeatured = true,
-                isHiddenGem = true
+                priority = 95
             ),
 
             // Northwest Community Hospital
@@ -723,7 +703,6 @@ class DataPopulator(private val database: AppDatabase) {
                 transitAccessible = true,
                 paceRoutes = "208",
                 priority = 88,
-                isHiddenGem = true
             ),
 
             // WINGS Program
@@ -799,103 +778,6 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = false,
                 transitAccessible = true,
                 priority = 70
-            )
-        )
-    }
-
-    // COLLEGES
-    private fun getColleges(): List<Opportunity> {
-        return listOf(
-            // Northwestern University
-            Opportunity(
-                title = "Northwestern University",
-                description = "7-7.6% acceptance. SAT 1510-1570, ACT 34-35 (test-optional). GPA ~3.9-4.0, 96% in top 10% of class. ED November 1, RD January 1. Required: 4 years English, 3-4 Math (calculus recommended), 2-3 Lab Science, 2-3 Social Studies, 2-3 Foreign Language, strong AP/IB rigor.",
-                category = OpportunityCategory.COLLEGE,
-                type = "Most Selective",
-                organizationName = "Northwestern University",
-                website = "https://www.northwestern.edu/admission",
-                address = "Evanston, IL",
-                deadline = getTimestamp(2025, 1, 1),
-                minGPA = 3.9,
-                cost = "Application: \$75 (fee waivers available)",
-                costMin = 75.0,
-                costMax = 75.0,
-                requirements = "Top 10% of class, SAT 1510-1570/ACT 34-35 (test-optional), 4 English, 3-4 Math, 2-3 Lab Science, strong rigor",
-                applicationComponents = "Common App/Coalition/QuestBridge, essays, transcripts, recommendations, test scores (optional)",
-                benefits = "Elite education, Chicago area, diverse programs, strong career outcomes",
-                tags = "college,highly-competitive,Northwestern,Evanston,test-optional",
-                transitAccessible = true,
-                paceRoutes = "208,236",
-                priority = 95
-            ),
-
-            // University of Chicago
-            Opportunity(
-                title = "University of Chicago",
-                description = "4.48% acceptance. SAT 1510-1580, ACT 34-35 (test-optional). Near-perfect GPAs typical. EA/ED I November 3, ED II/RD January 5. Required: 4 years English, 4 Math, 3-4 Science, 3-4 Social Studies, Foreign Language strongly recommended, AP/IB/Honors expected. Intellectual curiosity highly valued.",
-                category = OpportunityCategory.COLLEGE,
-                type = "Most Selective",
-                organizationName = "University of Chicago",
-                website = "https://collegeadmissions.uchicago.edu",
-                address = "Chicago, IL",
-                deadline = getTimestamp(2025, 1, 5),
-                minGPA = 3.95,
-                cost = "Application: \$75 (fee waivers available)",
-                costMin = 75.0,
-                costMax = 75.0,
-                requirements = "Top academics, SAT 1510-1580/ACT 34-35 (test-optional), 4 English, 4 Math, 3-4 Science, intellectual curiosity",
-                applicationComponents = "Common App/Coalition, essays (unique prompts), transcripts, recommendations, test scores (optional)",
-                benefits = "Intellectual rigor, Core curriculum, research opportunities, Chicago location",
-                tags = "college,highly-competitive,UChicago,Chicago,test-optional",
-                transitAccessible = true,
-                paceRoutes = "600",
-                priority = 96
-            ),
-
-            // UIUC
-            Opportunity(
-                title = "University of Illinois Urbana-Champaign (UIUC)",
-                description = "42.4% acceptance. SAT 1340-1530, ACT 30-34 (test-optional). GPA 3.7-4.0. 71% in-state. EA November 1, RD January 5. Required: 4 English, 3+ Math, 2 Lab Science, 2 Social Science, 2 Foreign Language, 2 Flexible Electives. Engineering/Business highly competitive.",
-                category = OpportunityCategory.COLLEGE,
-                type = "Highly Competitive Public",
-                organizationName = "University of Illinois Urbana-Champaign",
-                website = "https://admissions.illinois.edu",
-                address = "Urbana-Champaign, IL",
-                deadline = getTimestamp(2025, 1, 5),
-                minGPA = 3.7,
-                cost = "Application: \$50-\$75 (fee waivers available)",
-                costMin = 50.0,
-                costMax = 75.0,
-                requirements = "GPA 3.7-4.0, SAT 1340-1530/ACT 30-34 (test-optional), 4 English, 3+ Math, 2 Lab Science",
-                applicationComponents = "Common App/Coalition/UIUC portal, essays, transcripts, test scores (optional)",
-                benefits = "Top public university, strong STEM programs, Illinois in-state tuition",
-                tags = "college,competitive,UIUC,public,in-state,test-optional",
-                priority = 90
-            ),
-
-            // Harper College Dual Credit
-            Opportunity(
-                title = "Harper College Dual Credit (Districts 211, 214, 220)",
-                description = "Completely FREE for students (districts pay). Earn both HS and college credit simultaneously. Courses: ASL, Carpentry, Electronics, Fashion Design, Fire Science, HVAC, Health Care, Hospitality, Law Enforcement, CNA. NEW College Now Dual Degree Program Fall 2026: Earn associate degree while completing HS diploma. Accessible via Route 697.",
-                category = OpportunityCategory.COLLEGE,
-                type = "Dual Credit",
-                organizationName = "Harper College",
-                website = "https://www.harpercollege.edu/highschool/dualcredit",
-                address = "Palatine, IL",
-                contactEmail = "dualcredit@harpercollege.edu",
-                contactPhone = "847-925-6133",
-                cost = "FREE for students",
-                costMin = 0.0,
-                costMax = 0.0,
-                collegeCredit = true,
-                requirements = "Enrollment in Districts 211, 214, or 220 (includes Schaumburg HS, Conant HS)",
-                benefits = "FREE college credit, earn associate degree before HS graduation (NEW 2026), career pathways",
-                tags = "college,dual-credit,FREE,Harper,CTE,associate-degree",
-                transitAccessible = true,
-                paceRoutes = "697",
-                priority = 98,
-                isFeatured = true,
-                isHiddenGem = true
             )
         )
     }
@@ -998,6 +880,166 @@ class DataPopulator(private val database: AppDatabase) {
                 tags = "honor-society,CTE,technical,career,NTHS",
                 isVirtual = false,
                 priority = 73
+            ),
+
+            // Mu Alpha Theta (Math)
+            Opportunity(
+                title = "Mu Alpha Theta (Math Honor Society)",
+                description = "Mathematics honor society. 3.0 GPA in math required. Grades 9-12. Must have completed 2 years college prep math, enrolled in/completed 3rd year. 10 tutoring hours annually typical. National math competitions (6 levels), scholarships (Kalin, Andree Awards). Yellow/light blue cord.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "Math Honor Society",
+                organizationName = "Mu Alpha Theta",
+                website = "https://www.mualphatheta.org",
+                minGrade = 9,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "\$25-35 one-time",
+                costMin = 25.0,
+                costMax = 35.0,
+                requirements = "3.0 GPA in math, grades 9-12, completed 2 years college prep math, enrolled in/completed 3rd year, 10 tutoring hours annually",
+                serviceHours = true,
+                scholarshipAvailable = true,
+                graduationCord = true,
+                benefits = "National math competitions (6 levels), scholarships (Kalin, Andree Awards), yellow/light blue cord, tutoring experience",
+                tags = "honor-society,math,Mu-Alpha-Theta,STEM,tutoring",
+                isVirtual = false,
+                priority = 72
+            ),
+
+            // National English Honor Society
+            Opportunity(
+                title = "National English Honor Society (NEHS)",
+                description = "English honor society. 3.0 overall GPA, 3.0 English GPA. Grades 10-12 (no freshmen). Completed ≥2 semesters English. Literacy-focused service. Scholarships, publication opportunities, royal blue/gold cord, 2,900+ chapter network.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "English Honor Society",
+                organizationName = "National English Honor Society",
+                website = "https://www.nehs.us",
+                minGrade = 10,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "\$25-40 one-time",
+                costMin = 25.0,
+                costMax = 40.0,
+                requirements = "3.0 overall GPA, 3.0 English GPA, grades 10-12 (no freshmen), completed ≥2 semesters English, literacy service",
+                serviceHours = true,
+                scholarshipAvailable = true,
+                graduationCord = true,
+                benefits = "Scholarships, publication opportunities, royal blue/gold cord, 2,900+ chapter network, literacy service",
+                tags = "honor-society,English,literature,writing,NEHS",
+                isVirtual = false,
+                priority = 70
+            ),
+
+            // Rho Kappa (Social Studies)
+            Opportunity(
+                title = "Rho Kappa (Social Studies Honor Society)",
+                description = "Social studies honor society. 3.0 overall GPA (unweighted), 3.5 social studies GPA (unweighted). Grades 11-12 only (juniors/seniors). Completed ≥2 core social studies courses (4 semesters), prepared to complete ≥3 total (6 semesters). Social studies recognition, civic engagement.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "Social Studies Honor Society",
+                organizationName = "Rho Kappa",
+                website = "https://www.socialstudies.org/rhokappa",
+                minGrade = 11,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "\$15-25",
+                costMin = 15.0,
+                costMax = 25.0,
+                requirements = "3.0 overall GPA (unweighted), 3.5 social studies GPA (unweighted), grades 11-12 only, completed ≥2 core social studies courses (4 semesters)",
+                graduationCord = true,
+                benefits = "Social studies recognition, civic engagement opportunities, graduation cord",
+                tags = "honor-society,social-studies,history,civics,Rho-Kappa",
+                isVirtual = false,
+                priority = 68
+            ),
+
+            // National Art Honor Society
+            Opportunity(
+                title = "National Art Honor Society (NAHS)",
+                description = "Art honor society. 3.0 GPA in art (often 3.0 overall too). Grades 9-12. Completed ≥1 semester art, currently enrolled in art. 5-10 service hours annually. Up to \$8,000 art school scholarships, national exhibitions, rainbow graduation cord (after 2 years), 54,000+ member network.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "Art Honor Society",
+                organizationName = "National Art Honor Society",
+                website = "https://www.arteducators.org/nahs",
+                minGrade = 9,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "\$5/student annually",
+                costMin = 5.0,
+                costMax = 5.0,
+                requirements = "3.0 GPA in art (often 3.0 overall), grades 9-12, completed ≥1 semester art, currently enrolled in art, 5-10 service hours annually",
+                serviceHours = true,
+                scholarshipAmount = "Up to \$8,000 art school scholarships",
+                graduationCord = true,
+                benefits = "Up to \$8,000 art school scholarships, national exhibitions, rainbow graduation cord (after 2 years), 54,000+ member network",
+                tags = "honor-society,art,visual-arts,NAHS,creativity",
+                isVirtual = false,
+                priority = 69
+            ),
+
+            // Sociedad Honoraria Hispánica (Spanish)
+            Opportunity(
+                title = "Sociedad Honoraria Hispánica (Spanish Honor Society)",
+                description = "Spanish honor society. 3.0 Spanish GPA (3.5 recommended), 3.0 overall. Grade 10+. Completed ≥3 semesters Spanish/Portuguese (typically Spanish 3+), currently enrolled. 10 hours community service annually. Over \$160,000 scholarships/awards (60 Joseph Adams Senior Scholarships, 24 Bertie Green Travel Awards for juniors). Red/gold cord, 2,900+ chapters.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "World Language Honor Society",
+                organizationName = "Sociedad Honoraria Hispánica",
+                website = "https://www.aatspshh.org",
+                minGrade = 10,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "Varies by chapter",
+                requirements = "3.0 Spanish GPA (3.5 recommended), 3.0 overall, grade 10+, completed ≥3 semesters Spanish (Spanish 3+), currently enrolled, 10 hours service annually",
+                serviceHours = true,
+                scholarshipAmount = "Over \$160,000 scholarships/awards (60 Joseph Adams Senior Scholarships, 24 Bertie Green Travel Awards)",
+                graduationCord = true,
+                benefits = "Over \$160,000 scholarships/awards, red/gold cord, 2,900+ chapters, travel awards for juniors",
+                tags = "honor-society,Spanish,world-language,Hispanic,SHH",
+                isVirtual = false,
+                priority = 71
+            ),
+
+            // Société Honoraire de Français (French)
+            Opportunity(
+                title = "Société Honoraire de Français (French Honor Society)",
+                description = "French honor society. 3.3-3.6 French GPA (A- or 90%), 3.0 overall. Grades 10-12 (exception for 9th who met requirements in middle school). Enrolled in ≥4th semester French (French II second semester+), remain enrolled. National writing contest, travel grants, scholarships, tri-colored (blue/white/red) cord.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "World Language Honor Society",
+                organizationName = "Société Honoraire de Français",
+                website = "https://www.frenchteachers.org/shf",
+                minGrade = 10,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "Varies by chapter",
+                requirements = "3.3-3.6 French GPA (A- or 90%), 3.0 overall, grades 10-12, enrolled in ≥4th semester French (French II second semester+), remain enrolled",
+                scholarshipAvailable = true,
+                graduationCord = true,
+                benefits = "National writing contest, travel grants, scholarships, tri-colored (blue/white/red) cord",
+                tags = "honor-society,French,world-language,SHF",
+                isVirtual = false,
+                priority = 69
+            ),
+
+            // Delta Epsilon Phi (German)
+            Opportunity(
+                title = "Delta Epsilon Phi (German Honor Society)",
+                description = "German honor society. 3.3 (87%) or 3.6 German GPA, 3.0 overall. Grades 9-12. Completed 3 semesters German. \$25 chapter activation (one-time). Scholarships, black/red/gold cord.",
+                category = OpportunityCategory.HONOR_SOCIETY,
+                type = "World Language Honor Society",
+                organizationName = "Delta Epsilon Phi",
+                website = "https://www.aatg.org/dep",
+                minGrade = 9,
+                maxGrade = 12,
+                minGPA = 3.0,
+                cost = "\$25 chapter activation (one-time)",
+                costMin = 25.0,
+                costMax = 25.0,
+                requirements = "3.3 (87%) or 3.6 German GPA, 3.0 overall, grades 9-12, completed 3 semesters German",
+                scholarshipAvailable = true,
+                graduationCord = true,
+                benefits = "Scholarships, black/red/gold cord",
+                tags = "honor-society,German,world-language,Delta-Epsilon-Phi",
+                isVirtual = false,
+                priority = 67
             )
         )
     }
@@ -1050,9 +1092,7 @@ class DataPopulator(private val database: AppDatabase) {
                 tags = "aviation,FREE,flights,Young-Eagles,summer,hidden-gem",
                 isVirtual = false,
                 requiresCar = true,
-                priority = 88,
-                isHiddenGem = true,
-                isFeatured = true
+                priority = 88
             )
         )
     }
@@ -1081,9 +1121,7 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = false,
                 transitAccessible = true,
                 paceRoutes = "600",
-                priority = 90,
-                isHiddenGem = true,
-                isFeatured = true
+                priority = 90
             ),
 
             // Schoolhouse.world SAT Bootcamp
@@ -1103,7 +1141,6 @@ class DataPopulator(private val database: AppDatabase) {
                 isVirtual = true,
                 transitAccessible = true,
                 priority = 85,
-                isHiddenGem = true
             )
         )
     }
@@ -1128,7 +1165,6 @@ class DataPopulator(private val database: AppDatabase) {
                 tags = "internship,STEM,paid,Abbott,college-credit,diversity",
                 isVirtual = false,
                 priority = 92,
-                isFeatured = true
             ),
 
             // Art Institute of Chicago Teen Programs

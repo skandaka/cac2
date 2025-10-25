@@ -14,6 +14,9 @@ interface OpportunityDao {
     @Query("SELECT * FROM opportunities ORDER BY priority DESC, deadline ASC")
     fun getAllOpportunities(): LiveData<List<Opportunity>>
 
+    @Query("SELECT * FROM opportunities ORDER BY priority DESC, deadline ASC")
+    suspend fun getAllOpportunitiesSync(): List<Opportunity>
+
     @Query("SELECT * FROM opportunities WHERE id = :id")
     fun getOpportunityById(id: Long): LiveData<Opportunity?>
 
@@ -32,22 +35,6 @@ interface OpportunityDao {
         ORDER BY priority DESC
     """)
     fun searchOpportunities(query: String): LiveData<List<Opportunity>>
-
-    @Query("""
-        SELECT * FROM opportunities
-        WHERE isHiddenGem = 1
-        ORDER BY priority DESC
-        LIMIT :limit
-    """)
-    fun getHiddenGems(limit: Int = 10): LiveData<List<Opportunity>>
-
-    @Query("""
-        SELECT * FROM opportunities
-        WHERE isFeatured = 1
-        ORDER BY priority DESC
-        LIMIT :limit
-    """)
-    fun getFeaturedOpportunities(limit: Int = 5): LiveData<List<Opportunity>>
 
     @Query("""
         SELECT * FROM opportunities

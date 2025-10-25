@@ -37,7 +37,7 @@ class AIManager(private val context: Context) {
         }
     }
 
-    private val openAIService: OpenAIService by lazy {
+    private fun createOpenAIService(): OpenAIService {
         val apiKey = getApiKey()
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -59,7 +59,7 @@ class AIManager(private val context: Context) {
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
-        Retrofit.Builder()
+        return Retrofit.Builder()
             .baseUrl("https://api.openai.com/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
@@ -143,7 +143,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 1000
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -199,7 +199,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -266,7 +266,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 500
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -328,7 +328,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -516,7 +516,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 400
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -615,7 +615,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -688,7 +688,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -761,7 +761,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 600
             )
 
-            val response = openAIService.createChatCompletion(request)
+            val response = createOpenAIService().createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content

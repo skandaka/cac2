@@ -38,8 +38,10 @@ class DashboardFragment : Fragment() {
     private lateinit var commitmentsRecyclerView: RecyclerView
     private lateinit var noCommitmentsTextView: TextView
     private lateinit var recommendationsRecyclerView: RecyclerView
-    private lateinit var recommendationsHeaderTextView: TextView
+    private lateinit var recommendationsSubtitle: TextView
     private lateinit var recommendationsLoadingBar: ProgressBar
+    private lateinit var aiInsightsCard: com.google.android.material.card.MaterialCardView
+    private lateinit var refreshRecommendationsButton: com.google.android.material.button.MaterialButton
     private lateinit var calendarView: android.widget.CalendarView
     private lateinit var selectedDateTextView: TextView
     private lateinit var calendarCommitmentsTextView: TextView
@@ -68,6 +70,7 @@ class DashboardFragment : Fragment() {
         initializeViews(view)
         setupRecyclerViews()
         setupCalendar()
+        setupRefreshButton()
         loadDashboardData()
     }
 
@@ -101,13 +104,9 @@ class DashboardFragment : Fragment() {
             val startDate = commitment.commitment.startDate
             val endDate = commitment.commitment.endDate
 
-            // If no dates are set, show for all current commitments
-            if (startDate == null && endDate == null) {
-                // Show if commitment status is active (PARTICIPATING or ACCEPTED)
-                commitment.commitment.status == com.example.cac3.data.model.CommitmentStatus.PARTICIPATING ||
-                commitment.commitment.status == com.example.cac3.data.model.CommitmentStatus.ACCEPTED
-            } else if (startDate != null && endDate != null) {
-                // Normalize start and end dates to midnight for accurate comparison
+            // Only show commitments that have both start and end dates set
+            if (startDate != null && endDate != null) {
+                // Normalize start and end dates for accurate comparison
                 val startCal = java.util.Calendar.getInstance().apply {
                     timeInMillis = startDate
                     set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -123,15 +122,17 @@ class DashboardFragment : Fragment() {
                     set(java.util.Calendar.MILLISECOND, 999)
                 }
 
+                // Check if selected date falls within the commitment period
                 normalizedDate >= startCal.timeInMillis && normalizedDate <= endCal.timeInMillis
             } else {
-                false // If only one date is set, don't show
+                // Don't show commitments without proper dates on the calendar
+                false
             }
         }
 
         if (commitmentsOnDate.isEmpty()) {
             calendarCommitmentsTextView.visibility = View.GONE
-            calendarCommitmentsTextView.text = "" // Clear text
+            calendarCommitmentsTextView.text = ""
         } else {
             calendarCommitmentsTextView.visibility = View.VISIBLE
             val commitmentsText = commitmentsOnDate.joinToString("\n") {
@@ -148,6 +149,10 @@ class DashboardFragment : Fragment() {
         commitmentsRecyclerView = view.findViewById(R.id.commitmentsRecyclerView)
         noCommitmentsTextView = view.findViewById(R.id.noCommitmentsTextView)
         recommendationsRecyclerView = view.findViewById(R.id.recommendationsRecyclerView)
+        recommendationsSubtitle = view.findViewById(R.id.recommendationsSubtitle)
+        recommendationsLoadingBar = view.findViewById(R.id.recommendationsLoadingBar)
+        aiInsightsCard = view.findViewById(R.id.aiInsightsCard)
+        refreshRecommendationsButton = view.findViewById(R.id.refreshRecommendationsButton)
         calendarView = view.findViewById(R.id.calendarView)
         selectedDateTextView = view.findViewById(R.id.selectedDateTextView)
         calendarCommitmentsTextView = view.findViewById(R.id.calendarCommitmentsTextView)
@@ -171,6 +176,12 @@ class DashboardFragment : Fragment() {
         }
         recommendationsRecyclerView.adapter = recommendationAdapter
         recommendationsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+    }
+
+    private fun setupRefreshButton() {
+        refreshRecommendationsButton.setOnClickListener {
+            loadRecommendations()
+        }
     }
 
     private fun loadDashboardData() {
@@ -247,7 +258,7 @@ class DashboardFragment : Fragment() {
             try {
                 val userId = authManager.getCurrentUserId()
                 val user = if (userId != -1L) database.userDao().getUserById(userId) else null
-                val allOpportunities = database.opportunityDao().getAllOpportunities().value ?: emptyList()
+                val allOpportunities = database.opportunityDao().getAllOpportunitiesSync()
 
                 // Check if AI is configured
                 if (aiManager.isApiKeyConfigured() && user != null) {
@@ -264,8 +275,8 @@ class DashboardFragment : Fragment() {
                 e.printStackTrace()
                 Toast.makeText(
                     requireContext(),
-                    "Error loading recommendations",
-                    Toast.LENGTH_SHORT
+                    "Error loading recommendations: ${e.message}",
+                    Toast.LENGTH_LONG
                 ).show()
             }
         }
@@ -276,8 +287,15 @@ class DashboardFragment : Fragment() {
         opportunities: List<Opportunity>
     ) {
         try {
-            // Show loading indicator (if you add one to the layout)
+            // Show loading indicator and AI card
+            recommendationsLoadingBar.visibility = View.VISIBLE
+            aiInsightsCard.visibility = View.VISIBLE
+            refreshRecommendationsButton.visibility = View.VISIBLE
+            recommendationsSubtitle.text = "✨ AI-powered recommendations tailored to your profile"
+
             val result = aiManager.generateRecommendations(user, opportunities, maxResults = 10)
+
+            recommendationsLoadingBar.visibility = View.GONE
 
             result.onSuccess { recommendations ->
                 val opportunityList = recommendations.map { it.opportunity }
@@ -285,24 +303,28 @@ class DashboardFragment : Fragment() {
 
                 Toast.makeText(
                     requireContext(),
-                    "AI-powered recommendations loaded!",
+                    "✨ ${opportunityList.size} AI-powered recommendations loaded!",
                     Toast.LENGTH_SHORT
                 ).show()
             }.onFailure { error ->
                 // Fall back to basic recommendations on error
+                aiInsightsCard.visibility = View.GONE
                 val userInterests = user.interests
                 val basicRecommendations = getBasicRecommendations(userInterests, opportunities)
                 recommendationAdapter.submitList(basicRecommendations.take(10))
+                recommendationsSubtitle.text = "Based on your interests (AI unavailable)"
 
                 Toast.makeText(
                     requireContext(),
-                    "Using basic recommendations (AI failed: ${error.message})",
-                    Toast.LENGTH_SHORT
+                    "Using basic recommendations. AI error: ${error.message}",
+                    Toast.LENGTH_LONG
                 ).show()
             }
 
         } catch (e: Exception) {
             e.printStackTrace()
+            recommendationsLoadingBar.visibility = View.GONE
+            aiInsightsCard.visibility = View.GONE
         }
     }
 

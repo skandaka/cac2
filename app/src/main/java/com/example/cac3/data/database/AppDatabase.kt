@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         com.example.cac3.data.model.TeamMember::class,
         com.example.cac3.data.model.TeamRequest::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

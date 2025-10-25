@@ -26,7 +26,6 @@ import com.example.cac3.data.model.Opportunity
 import com.example.cac3.data.model.Team
 import com.example.cac3.data.model.TeamRequest
 import com.example.cac3.data.model.UserCommitment
-import com.example.cac3.fragments.OpportunityCommentsTabFragment
 import com.example.cac3.fragments.OpportunityDetailsTabFragment
 import com.example.cac3.util.AuthManager
 import com.google.android.material.appbar.MaterialToolbar
@@ -147,7 +146,6 @@ class OpportunityDetailActivity : AppCompatActivity() {
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Details"
-                1 -> "Comments"
                 else -> ""
             }
         }.attach()
@@ -736,12 +734,11 @@ class OpportunityDetailActivity : AppCompatActivity() {
         private val opportunityId: Long
     ) : FragmentStateAdapter(activity) {
 
-        override fun getItemCount(): Int = 2
+        override fun getItemCount(): Int = 1
 
         override fun createFragment(position: Int): Fragment {
             return when (position) {
                 0 -> OpportunityDetailsTabFragment.newInstance(opportunityId)
-                1 -> OpportunityCommentsTabFragment.newInstance(opportunityId)
                 else -> Fragment()
             }
         }

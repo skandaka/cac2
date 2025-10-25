@@ -75,10 +75,6 @@ class OpportunityAdapter(
                 costTextView.visibility = View.GONE
             }
 
-            // Badges
-            featuredBadge?.visibility = if (opportunity.isFeatured) View.VISIBLE else View.GONE
-            hiddenGemBadge?.visibility = if (opportunity.isHiddenGem) View.VISIBLE else View.GONE
-
             // Click listener
             cardView.setOnClickListener {
                 onItemClick(opportunity)

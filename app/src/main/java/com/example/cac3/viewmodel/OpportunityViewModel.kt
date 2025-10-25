@@ -19,8 +19,6 @@ class OpportunityViewModel(application: Application) : AndroidViewModel(applicat
 
     // LiveData for UI
     val allOpportunities: LiveData<List<Opportunity>>
-    val featuredOpportunities: LiveData<List<Opportunity>>
-    val hiddenGems: LiveData<List<Opportunity>>
     val upcomingDeadlines: LiveData<List<Opportunity>>
     val savedOpportunities: LiveData<List<SavedOpportunity>>
     val userPreferences: LiveData<UserPreferences?>
@@ -40,8 +38,6 @@ class OpportunityViewModel(application: Application) : AndroidViewModel(applicat
         repository = OpportunityRepository(database)
 
         allOpportunities = repository.getAllOpportunities()
-        featuredOpportunities = repository.getFeaturedOpportunities()
-        hiddenGems = repository.getHiddenGems()
         upcomingDeadlines = repository.getUpcomingDeadlines()
         savedOpportunities = repository.getAllSavedOpportunities()
         userPreferences = repository.getUserPreferences()

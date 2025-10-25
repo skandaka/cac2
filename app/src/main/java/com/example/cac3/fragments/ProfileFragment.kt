@@ -111,7 +111,13 @@ class ProfileFragment : Fragment() {
                 val user = database.userDao().getUserById(userId)
                 if (user == null) {
                     loadingDialog.dismiss()
-                    Toast.makeText(requireContext(), "User not found", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Session expired. Please log in again.", Toast.LENGTH_LONG).show()
+                    // Clear invalid session and redirect to login
+                    authManager.logout()
+                    val intent = Intent(requireContext(), com.example.cac3.activities.LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    requireActivity().finish()
                     return@launch
                 }
 
@@ -192,7 +198,13 @@ class ProfileFragment : Fragment() {
             try {
                 val user = database.userDao().getUserById(userId)
                 if (user == null) {
-                    Toast.makeText(requireContext(), "User not found", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Session expired. Please log in again.", Toast.LENGTH_LONG).show()
+                    // Clear invalid session and redirect to login
+                    authManager.logout()
+                    val intent = Intent(requireContext(), com.example.cac3.activities.LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    requireActivity().finish()
                     return@launch
                 }
 
