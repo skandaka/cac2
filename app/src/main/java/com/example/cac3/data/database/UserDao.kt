@@ -56,4 +56,7 @@ interface UserDao {
 
     @Query("DELETE FROM user_commitments WHERE userId = :userId AND opportunityId = :opportunityId")
     suspend fun deleteCommitmentByOpportunity(userId: Long, opportunityId: Long)
+
+    @Query("SELECT COUNT(*) FROM user_commitments WHERE opportunityId = :opportunityId")
+    suspend fun getCommitmentCountForOpportunity(opportunityId: Long): Int
 }

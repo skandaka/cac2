@@ -27,6 +27,8 @@
     <string name="nav_browse">Browse</string>
     <string name="nav_add">Add</string>
     <string name="nav_profile">Profile</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_teams">Teams</string>
 
     <!-- Dashboard -->
     <string name="welcome_user">Welcome, %s!</string>
@@ -105,4 +107,54 @@
     <string name="no_results">No opportunities found</string>
     <string name="free">FREE</string>
     <string name="required">Required</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">Analytics</string>
+    <string name="total_hours">Total Hours</string>
+    <string name="total_impact">Total Impact</string>
+    <string name="week_balance">Week Balance</string>
+    <string name="service_hours">Service Hours</string>
+    <string name="people_impacted">People Impacted</string>
+    <string name="skills_developed">Skills Developed</string>
+    <string name="scholarship_potential">Scholarship Potential</string>
+
+    <!-- AI Features -->
+    <string name="ai_get_guidance">Get Guidance &amp; Checklist</string>
+    <string name="ai_application_help">Application Help</string>
+    <string name="ai_predict_deadline">Predict Deadline</string>
+    <string name="ai_guidance_title">Guidance to Improve Your Chances</string>
+    <string name="ai_loading">Analyzing your profile...</string>
+    <string name="ai_not_enough_data">You don\'t have enough history for accurate analysis. Add more commitments to get personalized guidance.</string>
+    <string name="ai_error">Error generating guidance</string>
+
+    <!-- Filters -->
+    <string name="filter_title">Filters</string>
+    <string name="filter_category">Category</string>
+    <string name="filter_upvotes">Minimum Upvotes</string>
+    <string name="filter_students_enrolled">Students Enrolled</string>
+    <string name="filter_free_only">FREE Only</string>
+    <string name="filter_virtual_only">Virtual Only</string>
+    <string name="filter_transit_accessible">Transit Accessible</string>
+    <string name="filter_scholarship_available">Scholarship Available</string>
+    <string name="filter_sort_by">Sort By</string>
+    <string name="sort_most_popular">Most Popular</string>
+    <string name="sort_highest_rated">Highest Rated</string>
+    <string name="sort_deadline">Deadline</string>
+    <string name="sort_newest">Newest</string>
+    <string name="apply_filters">Apply Filters</string>
+    <string name="clear_filters">Clear Filters</string>
+
+    <!-- PDF Export -->
+    <string name="export_pdf">Export to PDF</string>
+    <string name="export_title">My Opportunity Portfolio</string>
+    <string name="export_generating">Generating PDF...</string>
+    <string name="export_success">PDF exported successfully</string>
+    <string name="export_error">Error generating PDF</string>
+
+    <!-- Deadline Carousel -->
+    <string name="days_until">%d DAYS</string>
+    <string name="today">TODAY</string>
+    <string name="tomorrow">TOMORROW</string>
+    <string name="overdue">OVERDUE</string>
+    <string name="no_upcoming_deadlines">No upcoming deadlines</string>
 </resources>

@@ -116,20 +116,20 @@ class OpportunityDetailActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_success_probability -> {
-                showSuccessProbability()
+            R.id.action_get_guidance -> {
+                showGuidanceAndChecklist()
                 true
             }
             R.id.action_application_help -> {
                 showApplicationHelp()
                 true
             }
-            R.id.action_generate_checklist -> {
-                showGenerateChecklist()
-                true
-            }
             R.id.action_predict_deadline -> {
                 showPredictDeadline()
+                true
+            }
+            R.id.action_export_pdf -> {
+                exportCommitmentsToPDF()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -258,33 +258,51 @@ class OpportunityDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSuccessProbability() {
+    private fun showGuidanceAndChecklist() {
         val currentOpp = opportunity ?: return
         val userId = authManager.getCurrentUserId()
         if (userId == -1L) {
-            Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error), Toast.LENGTH_SHORT).show()
             return
         }
 
         // Show loading dialog
         val loadingDialog = AlertDialog.Builder(this)
-            .setTitle("Calculating Success Probability")
-            .setMessage("Analyzing your profile and this opportunity...")
+            .setTitle(getString(R.string.ai_guidance_title))
+            .setMessage(getString(R.string.ai_loading))
             .setCancelable(false)
             .create()
         loadingDialog.show()
 
         lifecycleScope.launch {
             try {
+                // Get user profile
                 val user = database.userDao().getUserById(userId)
                 if (user == null) {
                     loadingDialog.dismiss()
-                    Toast.makeText(this@OpportunityDetailActivity, "User not found", Toast.LENGTH_SHORT).show()
+                    // Show helpful message instead of just "User not found"
+                    AlertDialog.Builder(this@OpportunityDetailActivity)
+                        .setTitle(getString(R.string.error))
+                        .setMessage("Please complete your profile first to get personalized guidance.")
+                        .setPositiveButton("OK", null)
+                        .show()
                     return@launch
                 }
 
                 // Get user's current activities
                 val commitments = database.userDao().getUserCommitmentsSync(userId)
+
+                // Check if user has enough history for accurate analysis
+                if (commitments.size < 2) {
+                    loadingDialog.dismiss()
+                    AlertDialog.Builder(this@OpportunityDetailActivity)
+                        .setTitle(getString(R.string.ai_guidance_title))
+                        .setMessage(getString(R.string.ai_not_enough_data))
+                        .setPositiveButton("OK", null)
+                        .show()
+                    return@launch
+                }
+
                 val activities = mutableListOf<String>()
                 for (commitment in commitments) {
                     val opp = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
@@ -293,16 +311,22 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     }
                 }
 
-                val result = aiManager.calculateSuccessProbability(user, currentOpp, activities)
+                // Get both guidance and checklist
+                val guidanceResult = aiManager.calculateSuccessProbability(user, currentOpp, activities)
+                val checklistResult = aiManager.generateApplicationChecklist(currentOpp)
 
                 loadingDialog.dismiss()
 
-                result.onSuccess { probability ->
-                    showSuccessProbabilityDialog(probability)
-                }.onFailure { error ->
+                // Check if both succeeded
+                val guidance = guidanceResult.getOrNull()
+                val checklist = checklistResult.getOrNull()
+
+                if (guidance != null || checklist != null) {
+                    showGuidanceAndChecklistDialog(guidance, checklist)
+                } else {
                     Toast.makeText(
                         this@OpportunityDetailActivity,
-                        "Error: ${error.message}",
+                        getString(R.string.ai_error),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -312,98 +336,99 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 e.printStackTrace()
                 Toast.makeText(
                     this@OpportunityDetailActivity,
-                    "Error calculating probability",
+                    getString(R.string.ai_error),
                     Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
-    private fun showSuccessProbabilityDialog(probability: com.example.cac3.ai.SuccessProbability) {
+    private fun showGuidanceAndChecklistDialog(
+        guidance: com.example.cac3.ai.SuccessProbability?,
+        checklist: List<ChecklistItem>?
+    ) {
         val dialogView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(50, 30, 50, 30)
         }
 
-        // Probability score
-        val scoreText = TextView(this).apply {
-            text = "Success Probability: ${probability.probability}%"
-            textSize = 20f
-            setTextColor(getColor(R.color.primary))
-            setPadding(0, 0, 0, 20)
-        }
-        dialogView.addView(scoreText)
-
-        // Confidence
-        val confidenceText = TextView(this).apply {
-            text = "Confidence: ${probability.confidence.uppercase()}"
-            textSize = 16f
-            setPadding(0, 0, 0, 20)
-        }
-        dialogView.addView(confidenceText)
-
-        // Strengths
-        if (probability.strengths.isNotEmpty()) {
-            val strengthsTitle = TextView(this).apply {
-                text = "Strengths:"
-                textSize = 16f
-                setTextColor(getColor(R.color.success))
-                setPadding(0, 10, 0, 5)
-            }
-            dialogView.addView(strengthsTitle)
-
-            probability.strengths.forEach { strength ->
-                val strengthItem = TextView(this).apply {
-                    text = "• $strength"
-                    textSize = 14f
-                    setPadding(20, 5, 0, 5)
+        // Show guidance section (positive framing)
+        if (guidance != null) {
+            // Your Strengths
+            if (guidance.strengths.isNotEmpty()) {
+                val strengthsTitle = TextView(this).apply {
+                    text = "✓ Your Strengths:"
+                    textSize = 18f
+                    setTextColor(getColor(R.color.success))
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setPadding(0, 10, 0, 10)
                 }
-                dialogView.addView(strengthItem)
-            }
-        }
+                dialogView.addView(strengthsTitle)
 
-        // Weaknesses
-        if (probability.weaknesses.isNotEmpty()) {
-            val weaknessesTitle = TextView(this).apply {
-                text = "Areas to Improve:"
-                textSize = 16f
-                setTextColor(getColor(R.color.warning))
-                setPadding(0, 15, 0, 5)
-            }
-            dialogView.addView(weaknessesTitle)
-
-            probability.weaknesses.forEach { weakness ->
-                val weaknessItem = TextView(this).apply {
-                    text = "• $weakness"
-                    textSize = 14f
-                    setPadding(20, 5, 0, 5)
+                guidance.strengths.forEach { strength ->
+                    val strengthItem = TextView(this).apply {
+                        text = "• $strength"
+                        textSize = 14f
+                        setPadding(20, 5, 0, 5)
+                    }
+                    dialogView.addView(strengthItem)
                 }
-                dialogView.addView(weaknessItem)
+            }
+
+            // How to Improve Your Chances
+            if (guidance.recommendations.isNotEmpty()) {
+                val recsTitle = TextView(this).apply {
+                    text = "→ How to Improve Your Chances:"
+                    textSize = 18f
+                    setTextColor(getColor(R.color.primary))
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setPadding(0, 20, 0, 10)
+                }
+                dialogView.addView(recsTitle)
+
+                guidance.recommendations.forEach { rec ->
+                    val recItem = TextView(this).apply {
+                        text = "• $rec"
+                        textSize = 14f
+                        setPadding(20, 5, 0, 5)
+                    }
+                    dialogView.addView(recItem)
+                }
             }
         }
 
-        // Recommendations
-        if (probability.recommendations.isNotEmpty()) {
-            val recsTitle = TextView(this).apply {
-                text = "Recommendations:"
-                textSize = 16f
+        // Show checklist section
+        if (checklist != null && checklist.isNotEmpty()) {
+            val checklistTitle = TextView(this).apply {
+                text = "☑ Application Checklist:"
+                textSize = 18f
                 setTextColor(getColor(R.color.info))
-                setPadding(0, 15, 0, 5)
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setPadding(0, 20, 0, 10)
             }
-            dialogView.addView(recsTitle)
+            dialogView.addView(checklistTitle)
 
-            probability.recommendations.forEach { rec ->
-                val recItem = TextView(this).apply {
-                    text = "• $rec"
+            checklist.take(5).forEach { item ->
+                val taskText = TextView(this).apply {
+                    text = "• ${item.task}"
                     textSize = 14f
-                    setPadding(20, 5, 0, 5)
+                    setPadding(20, 5, 0, 2)
+                    setTypeface(null, android.graphics.Typeface.BOLD)
                 }
-                dialogView.addView(recItem)
+                dialogView.addView(taskText)
+
+                val detailsText = TextView(this).apply {
+                    text = "  ${item.description}"
+                    textSize = 12f
+                    setTextColor(getColor(R.color.text_secondary))
+                    setPadding(40, 2, 0, 8)
+                }
+                dialogView.addView(detailsText)
             }
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Success Analysis")
+            .setTitle(getString(R.string.ai_guidance_title))
             .setView(dialogView)
             .setPositiveButton("OK", null)
             .show()
@@ -747,6 +772,178 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 Toast.makeText(
                     this@OpportunityDetailActivity,
                     "Error removing commitment",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun exportCommitmentsToPDF() {
+        val userId = authManager.getCurrentUserId()
+        if (userId == -1L) {
+            Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Show loading dialog
+        val loadingDialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.export_pdf))
+            .setMessage(getString(R.string.export_generating))
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+
+        lifecycleScope.launch {
+            try {
+                val user = database.userDao().getUserById(userId)
+                val commitments = database.userDao().getUserCommitmentsSync(userId)
+
+                if (commitments.isEmpty()) {
+                    loadingDialog.dismiss()
+                    Toast.makeText(
+                        this@OpportunityDetailActivity,
+                        "No commitments to export",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+
+                // Create PDF
+                val pdfDocument = android.graphics.pdf.PdfDocument()
+                val pageWidth = 595 // A4 width in points
+                val pageHeight = 842 // A4 height in points
+
+                var pageNumber = 1
+                var yPosition = 100f
+                val lineHeight = 20f
+                val margin = 50f
+
+                var pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                var page = pdfDocument.startPage(pageInfo)
+                var canvas = page.canvas
+                val paint = android.graphics.Paint()
+
+                // Title
+                paint.textSize = 24f
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                canvas.drawText(getString(R.string.export_title), margin, yPosition, paint)
+                yPosition += 40f
+
+                // User info
+                paint.textSize = 14f
+                paint.typeface = android.graphics.Typeface.DEFAULT
+                if (user != null) {
+                    canvas.drawText("Student: ${user.fullName}", margin, yPosition, paint)
+                    yPosition += lineHeight
+                    canvas.drawText("Grade: ${user.grade}", margin, yPosition, paint)
+                    yPosition += lineHeight
+                    if (user.gpa != null) {
+                        canvas.drawText("GPA: ${user.gpa}", margin, yPosition, paint)
+                        yPosition += lineHeight
+                    }
+                }
+                yPosition += 20f
+
+                // Total hours
+                val totalHours = commitments.sumOf { it.hoursPerWeek }
+                paint.textSize = 16f
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                canvas.drawText("Total Time Commitment: $totalHours hrs/week", margin, yPosition, paint)
+                yPosition += 30f
+
+                // Commitments list
+                paint.textSize = 14f
+                paint.typeface = android.graphics.Typeface.DEFAULT
+
+                for ((index, commitment) in commitments.withIndex()) {
+                    val opp = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
+                    if (opp != null) {
+                        // Check if we need a new page
+                        if (yPosition > pageHeight - 150) {
+                            pdfDocument.finishPage(page)
+                            pageNumber++
+                            pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                            page = pdfDocument.startPage(pageInfo)
+                            canvas = page.canvas
+                            yPosition = 50f
+                        }
+
+                        // Opportunity title
+                        paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+                        canvas.drawText("${index + 1}. ${opp.title}", margin, yPosition, paint)
+                        yPosition += lineHeight
+
+                        // Category
+                        paint.typeface = android.graphics.Typeface.DEFAULT
+                        canvas.drawText("   Category: ${opp.category}", margin, yPosition, paint)
+                        yPosition += lineHeight
+
+                        // Time commitment
+                        canvas.drawText("   Time: ${commitment.hoursPerWeek} hrs/week", margin, yPosition, paint)
+                        yPosition += lineHeight
+
+                        // Dates if available
+                        if (commitment.startDate != null || commitment.endDate != null) {
+                            val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+                            val dateStr = if (commitment.startDate != null && commitment.endDate != null) {
+                                "${dateFormat.format(java.util.Date(commitment.startDate!!))} - ${dateFormat.format(java.util.Date(commitment.endDate!!))}"
+                            } else if (commitment.startDate != null) {
+                                "Starts: ${dateFormat.format(java.util.Date(commitment.startDate!!))}"
+                            } else {
+                                "Ends: ${dateFormat.format(java.util.Date(commitment.endDate!!))}"
+                            }
+                            canvas.drawText("   Duration: $dateStr", margin, yPosition, paint)
+                            yPosition += lineHeight
+                        }
+
+                        // Status
+                        canvas.drawText("   Status: ${commitment.status}", margin, yPosition, paint)
+                        yPosition += lineHeight
+
+                        // Organization if available
+                        if (!opp.organizationName.isNullOrEmpty()) {
+                            canvas.drawText("   Organization: ${opp.organizationName}", margin, yPosition, paint)
+                            yPosition += lineHeight
+                        }
+
+                        yPosition += 10f
+                    }
+                }
+
+                pdfDocument.finishPage(page)
+
+                // Save PDF
+                val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                val fileName = "OpportunityPortfolio_${System.currentTimeMillis()}.pdf"
+                val file = java.io.File(downloadsDir, fileName)
+
+                try {
+                    pdfDocument.writeTo(java.io.FileOutputStream(file))
+                    loadingDialog.dismiss()
+
+                    AlertDialog.Builder(this@OpportunityDetailActivity)
+                        .setTitle(getString(R.string.export_success))
+                        .setMessage("PDF saved to Downloads/$fileName")
+                        .setPositiveButton("OK", null)
+                        .show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    loadingDialog.dismiss()
+                    Toast.makeText(
+                        this@OpportunityDetailActivity,
+                        getString(R.string.export_error),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } finally {
+                    pdfDocument.close()
+                }
+
+            } catch (e: Exception) {
+                loadingDialog.dismiss()
+                e.printStackTrace()
+                Toast.makeText(
+                    this@OpportunityDetailActivity,
+                    getString(R.string.export_error),
                     Toast.LENGTH_SHORT
                 ).show()
             }

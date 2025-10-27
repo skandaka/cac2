@@ -39,11 +39,21 @@ class BrowseFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var resultsCountTextView: TextView
     private lateinit var emptyStateLayout: View
+    private lateinit var advancedFilterButton: com.google.android.material.button.MaterialButton
 
     private var allOpportunities: List<Opportunity> = emptyList()
     private var currentSearchQuery: String = ""
     private var currentCategory: OpportunityCategory? = null
     private var searchJob: Job? = null
+
+    // Advanced filter state
+    private var freeOnly: Boolean = false
+    private var virtualOnly: Boolean = false
+    private var transitAccessible: Boolean = false
+    private var scholarshipAvailable: Boolean = false
+    private var minComments: Int = 0
+    private var minStudents: Int = 0
+    private var sortBy: String = "popular" // popular, commented, deadline, newest
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,6 +81,7 @@ class BrowseFragment : Fragment() {
         recyclerView = view.findViewById(R.id.opportunitiesRecyclerView)
         resultsCountTextView = view.findViewById(R.id.resultsCountTextView)
         emptyStateLayout = view.findViewById(R.id.emptyStateLayout)
+        advancedFilterButton = view.findViewById(R.id.advancedFilterButton)
 
         // Setup FAB for adding opportunities
         val addFab = view.findViewById<ExtendedFloatingActionButton>(R.id.addOpportunityFab)
@@ -80,6 +91,11 @@ class BrowseFragment : Fragment() {
                 .replace(R.id.fragmentContainer, AddOpportunityFragment())
                 .addToBackStack(null)
                 .commit()
+        }
+
+        // Setup advanced filter button
+        advancedFilterButton.setOnClickListener {
+            showAdvancedFilterDialog()
         }
     }
 
@@ -135,27 +151,97 @@ class BrowseFragment : Fragment() {
     }
 
     private fun filterOpportunities() {
-        var filtered = allOpportunities
+        lifecycleScope.launch {
+            var filtered = allOpportunities
 
-        // Apply category filter
-        if (currentCategory != null) {
-            filtered = filtered.filter { it.category == currentCategory }
-        }
-
-        // Apply search filter
-        if (currentSearchQuery.isNotEmpty()) {
-            val query = currentSearchQuery.lowercase()
-            filtered = filtered.filter { opportunity ->
-                opportunity.title.lowercase().contains(query) ||
-                opportunity.description.lowercase().contains(query) ||
-                (opportunity.organizationName?.lowercase()?.contains(query) == true) ||
-                (opportunity.tags?.lowercase()?.contains(query) == true) ||
-                opportunity.type.lowercase().contains(query)
+            // Apply category filter
+            if (currentCategory != null) {
+                filtered = filtered.filter { it.category == currentCategory }
             }
-        }
 
-        // Update UI
-        updateResults(filtered)
+            // Apply search filter
+            if (currentSearchQuery.isNotEmpty()) {
+                val query = currentSearchQuery.lowercase()
+                filtered = filtered.filter { opportunity ->
+                    opportunity.title.lowercase().contains(query) ||
+                    opportunity.description.lowercase().contains(query) ||
+                    (opportunity.organizationName?.lowercase()?.contains(query) == true) ||
+                    (opportunity.tags?.lowercase()?.contains(query) == true) ||
+                    opportunity.type.lowercase().contains(query)
+                }
+            }
+
+            // Apply advanced filters
+            if (freeOnly) {
+                filtered = filtered.filter { opp ->
+                    (opp.cost?.equals("FREE", ignoreCase = true) == true) ||
+                    (opp.costMin == null || opp.costMin == 0.0) ||
+                    (opp.cost == null)
+                }
+            }
+
+            if (virtualOnly) {
+                filtered = filtered.filter { it.isVirtual }
+            }
+
+            if (transitAccessible) {
+                filtered = filtered.filter { it.transitAccessible }
+            }
+
+            if (scholarshipAvailable) {
+                filtered = filtered.filter { it.scholarshipAvailable }
+            }
+
+            // Filter by minimum comments
+            if (minComments > 0) {
+                val commentCounts = mutableMapOf<Long, Int>()
+                for (opp in filtered) {
+                    val count = database.commentDao().getCommentCount(opp.id)
+                    commentCounts[opp.id] = count
+                }
+                filtered = filtered.filter { (commentCounts[it.id] ?: 0) >= minComments }
+            }
+
+            // Filter by minimum students enrolled
+            if (minStudents > 0) {
+                val enrollmentCounts = mutableMapOf<Long, Int>()
+                for (opp in filtered) {
+                    val count = database.userDao().getCommitmentCountForOpportunity(opp.id)
+                    enrollmentCounts[opp.id] = count
+                }
+                filtered = filtered.filter { (enrollmentCounts[it.id] ?: 0) >= minStudents }
+            }
+
+            // Apply sorting
+            filtered = when (sortBy) {
+                "popular" -> {
+                    // Sort by number of students enrolled
+                    val enrollmentCounts = mutableMapOf<Long, Int>()
+                    for (opp in filtered) {
+                        enrollmentCounts[opp.id] = database.userDao().getCommitmentCountForOpportunity(opp.id)
+                    }
+                    filtered.sortedByDescending { enrollmentCounts[it.id] ?: 0 }
+                }
+                "commented" -> {
+                    // Sort by number of comments
+                    val commentCounts = mutableMapOf<Long, Int>()
+                    for (opp in filtered) {
+                        commentCounts[opp.id] = database.commentDao().getCommentCount(opp.id)
+                    }
+                    filtered.sortedByDescending { commentCounts[it.id] ?: 0 }
+                }
+                "deadline" -> {
+                    filtered.sortedBy { it.deadline ?: Long.MAX_VALUE }
+                }
+                "newest" -> {
+                    filtered.sortedByDescending { it.createdAt }
+                }
+                else -> filtered
+            }
+
+            // Update UI
+            updateResults(filtered)
+        }
     }
 
     private fun updateResults(opportunities: List<Opportunity>) {
@@ -183,6 +269,100 @@ class BrowseFragment : Fragment() {
         return category.name.replace('_', ' ').lowercase()
             .split(' ')
             .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+    }
+
+    private fun showAdvancedFilterDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_advanced_filters, null)
+
+        // Initialize dialog views
+        val categoryChipGroup = dialogView.findViewById<ChipGroup>(R.id.categoryFilterChipGroup)
+        val freeOnlySwitch = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.freeOnlySwitch)
+        val virtualOnlySwitch = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.virtualOnlySwitch)
+        val transitAccessibleSwitch = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.transitAccessibleSwitch)
+        val scholarshipAvailableSwitch = dialogView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.scholarshipAvailableSwitch)
+        val minCommentsSlider = dialogView.findViewById<com.google.android.material.slider.Slider>(R.id.minCommentsSlider)
+        val minCommentsValue = dialogView.findViewById<TextView>(R.id.minCommentsValue)
+        val minStudentsSlider = dialogView.findViewById<com.google.android.material.slider.Slider>(R.id.minStudentsSlider)
+        val minStudentsValue = dialogView.findViewById<TextView>(R.id.minStudentsValue)
+        val sortByRadioGroup = dialogView.findViewById<android.widget.RadioGroup>(R.id.sortByRadioGroup)
+
+        // Set current filter state
+        freeOnlySwitch.isChecked = freeOnly
+        virtualOnlySwitch.isChecked = virtualOnly
+        transitAccessibleSwitch.isChecked = transitAccessible
+        scholarshipAvailableSwitch.isChecked = scholarshipAvailable
+        minCommentsSlider.value = minComments.toFloat()
+        minStudentsSlider.value = minStudents.toFloat()
+
+        // Update value displays
+        minCommentsSlider.addOnChangeListener { _, value, _ ->
+            minCommentsValue.text = value.toInt().toString()
+        }
+        minStudentsSlider.addOnChangeListener { _, value, _ ->
+            minStudentsValue.text = "${value.toInt()}+"
+        }
+
+        // Set current sort option
+        when (sortBy) {
+            "popular" -> sortByRadioGroup.check(R.id.sortMostPopular)
+            "commented" -> sortByRadioGroup.check(R.id.sortMostCommented)
+            "deadline" -> sortByRadioGroup.check(R.id.sortDeadline)
+            "newest" -> sortByRadioGroup.check(R.id.sortNewest)
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.filter_title))
+            .setView(dialogView)
+            .create()
+
+        // Apply filters button
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.applyFiltersButton).setOnClickListener {
+            // Get selected category
+            when (categoryChipGroup.checkedChipId) {
+                R.id.chipFilterCompetition -> currentCategory = OpportunityCategory.COMPETITION
+                R.id.chipFilterEmployment -> currentCategory = OpportunityCategory.EMPLOYMENT
+                R.id.chipFilterVolunteering -> currentCategory = OpportunityCategory.VOLUNTEERING
+                R.id.chipFilterClub -> currentCategory = OpportunityCategory.CLUB
+                R.id.chipFilterSummer -> currentCategory = OpportunityCategory.SUMMER_PROGRAM
+                else -> currentCategory = null
+            }
+
+            // Get filter states
+            freeOnly = freeOnlySwitch.isChecked
+            virtualOnly = virtualOnlySwitch.isChecked
+            transitAccessible = transitAccessibleSwitch.isChecked
+            scholarshipAvailable = scholarshipAvailableSwitch.isChecked
+            minComments = minCommentsSlider.value.toInt()
+            minStudents = minStudentsSlider.value.toInt()
+
+            // Get sort option
+            sortBy = when (sortByRadioGroup.checkedRadioButtonId) {
+                R.id.sortMostPopular -> "popular"
+                R.id.sortMostCommented -> "commented"
+                R.id.sortDeadline -> "deadline"
+                R.id.sortNewest -> "newest"
+                else -> "popular"
+            }
+
+            filterOpportunities()
+            dialog.dismiss()
+        }
+
+        // Clear filters button
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.clearFiltersButton).setOnClickListener {
+            currentCategory = null
+            freeOnly = false
+            virtualOnly = false
+            transitAccessible = false
+            scholarshipAvailable = false
+            minComments = 0
+            minStudents = 0
+            sortBy = "popular"
+            filterOpportunities()
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     override fun onResume() {

@@ -1,0 +1,160 @@
+<resources>
+    <string name="app_name">OpportunityHub</string>
+    <string name="app_tagline">Tu rastreador personalizado de oportunidades</string>
+
+    <!-- Authentication -->
+    <string name="welcome">Bienvenido a OpportunityHub</string>
+    <string name="login">Iniciar Sesión</string>
+    <string name="signup">Registrarse</string>
+    <string name="email">Correo Electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="full_name">Nombre Completo</string>
+    <string name="grade">Nivel de Grado</string>
+    <string name="gpa">Promedio (opcional)</string>
+    <string name="create_account">Crear Cuenta</string>
+    <string name="already_have_account">¿Ya tienes una cuenta? Inicia sesión</string>
+    <string name="dont_have_account">¿No tienes cuenta? Regístrate</string>
+    <string name="logout">Cerrar Sesión</string>
+
+    <!-- Interest Profiler -->
+    <string name="interest_profiler_title">¿Qué te interesa?</string>
+    <string name="interest_profiler_subtitle">Selecciona todo lo que aplique para obtener recomendaciones personalizadas</string>
+    <string name="continue_btn">Continuar</string>
+    <string name="skip">Saltar</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_dashboard">Panel</string>
+    <string name="nav_browse">Explorar</string>
+    <string name="nav_add">Agregar</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_analytics">Análisis</string>
+    <string name="nav_teams">Equipos</string>
+
+    <!-- Dashboard -->
+    <string name="welcome_user">¡Bienvenido, %s!</string>
+    <string name="your_commitments">Tus Compromisos</string>
+    <string name="hours_this_week">%d hrs/semana</string>
+    <string name="recommended_for_you">Recomendado Para Ti</string>
+    <string name="upcoming_deadlines">Fechas Límite Próximas</string>
+    <string name="my_calendar">Mi Calendario</string>
+    <string name="time_breakdown">Desglose de Tiempo</string>
+    <string name="no_commitments">Aún no hay compromisos. ¡Empieza a explorar!</string>
+
+    <!-- Browse -->
+    <string name="browse_opportunities">Explorar Oportunidades</string>
+    <string name="search_hint">Buscar oportunidades...</string>
+    <string name="filter_by_subject">Filtrar por Materia</string>
+    <string name="filter_by_type">Filtrar por Tipo</string>
+    <string name="all_subjects">Todas las Materias</string>
+
+    <!-- Add Opportunity -->
+    <string name="add_opportunity">Agregar Oportunidad</string>
+    <string name="add_opportunity_subtitle">Ayuda a tus compañeros a descubrir nuevas oportunidades</string>
+    <string name="opportunity_title">Título</string>
+    <string name="opportunity_description">Descripción</string>
+    <string name="opportunity_organization">Organización</string>
+    <string name="opportunity_website">Sitio Web</string>
+    <string name="opportunity_deadline">Fecha Límite (opcional)</string>
+    <string name="opportunity_cost">Costo</string>
+    <string name="select_category">Seleccionar Categoría</string>
+    <string name="select_subjects">Seleccionar Materias</string>
+    <string name="submit_opportunity">Enviar Oportunidad</string>
+    <string name="opportunity_added">¡Oportunidad agregada exitosamente!</string>
+
+    <!-- Opportunity Detail -->
+    <string name="add_to_commitments">Agregar a Mis Compromisos</string>
+    <string name="remove_from_commitments">Eliminar de Compromisos</string>
+    <string name="view_website">Ver Sitio Web</string>
+    <string name="share">Compartir</string>
+    <string name="details_tab">Detalles</string>
+    <string name="comments_tab">Comentarios</string>
+    <string name="organization">Organización</string>
+    <string name="deadline">Fecha Límite</string>
+    <string name="cost">Costo</string>
+    <string name="time_commitment">Compromiso de Tiempo</string>
+    <string name="requirements">Requisitos</string>
+    <string name="benefits">Beneficios</string>
+    <string name="contact_info">Información de Contacto</string>
+    <string name="transit_info">Información de Tránsito</string>
+
+    <!-- Comments -->
+    <string name="comments_title">Perspectivas de Estudiantes</string>
+    <string name="add_comment">Comparte Tu Experiencia</string>
+    <string name="comment_hint">¿Qué deberían saber otros estudiantes sobre esta oportunidad?</string>
+    <string name="your_name">Tu Nombre (opcional)</string>
+    <string name="post_comment">Publicar</string>
+    <string name="comment_posted">¡Comentario publicado!</string>
+    <string name="no_comments">Aún no hay perspectivas. ¡Sé el primero en compartir!</string>
+    <string name="helpful">Útil (%d)</string>
+
+    <!-- Profile -->
+    <string name="my_profile">Mi Perfil</string>
+    <string name="edit_interests">Editar Intereses</string>
+    <string name="edit_profile">Editar Perfil</string>
+    <string name="my_stats">Mis Estadísticas</string>
+    <string name="total_commitments">Compromisos Totales</string>
+    <string name="hours_per_week">Horas por Semana</string>
+    <string name="opportunities_completed">Completadas</string>
+
+    <!-- General -->
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="delete">Eliminar</string>
+    <string name="edit">Editar</string>
+    <string name="done">Hecho</string>
+    <string name="loading">Cargando...</string>
+    <string name="error">Algo salió mal</string>
+    <string name="no_results">No se encontraron oportunidades</string>
+    <string name="free">GRATIS</string>
+    <string name="required">Requerido</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">Análisis</string>
+    <string name="total_hours">Horas Totales</string>
+    <string name="total_impact">Impacto Total</string>
+    <string name="week_balance">Balance Semanal</string>
+    <string name="service_hours">Horas de Servicio</string>
+    <string name="people_impacted">Personas Impactadas</string>
+    <string name="skills_developed">Habilidades Desarrolladas</string>
+    <string name="scholarship_potential">Potencial de Becas</string>
+
+    <!-- AI Features -->
+    <string name="ai_get_guidance">Obtener Orientación &amp; Lista de Verificación</string>
+    <string name="ai_application_help">Ayuda con la Solicitud</string>
+    <string name="ai_predict_deadline">Predecir Fecha Límite</string>
+    <string name="ai_guidance_title">Orientación para Mejorar Tus Posibilidades</string>
+    <string name="ai_loading">Analizando tu perfil...</string>
+    <string name="ai_not_enough_data">No tienes suficiente historial para un análisis preciso. Agrega más compromisos para obtener orientación personalizada.</string>
+    <string name="ai_error">Error al generar orientación</string>
+
+    <!-- Filters -->
+    <string name="filter_title">Filtros</string>
+    <string name="filter_category">Categoría</string>
+    <string name="filter_upvotes">Votos Positivos Mínimos</string>
+    <string name="filter_students_enrolled">Estudiantes Participando</string>
+    <string name="filter_free_only">Solo GRATIS</string>
+    <string name="filter_virtual_only">Solo Virtual</string>
+    <string name="filter_transit_accessible">Accesible en Transporte</string>
+    <string name="filter_scholarship_available">Beca Disponible</string>
+    <string name="filter_sort_by">Ordenar Por</string>
+    <string name="sort_most_popular">Más Popular</string>
+    <string name="sort_highest_rated">Mejor Calificado</string>
+    <string name="sort_deadline">Fecha Límite</string>
+    <string name="sort_newest">Más Reciente</string>
+    <string name="apply_filters">Aplicar Filtros</string>
+    <string name="clear_filters">Limpiar Filtros</string>
+
+    <!-- PDF Export -->
+    <string name="export_pdf">Exportar a PDF</string>
+    <string name="export_title">Mi Portafolio de Oportunidades</string>
+    <string name="export_generating">Generando PDF...</string>
+    <string name="export_success">PDF exportado exitosamente</string>
+    <string name="export_error">Error al generar PDF</string>
+
+    <!-- Deadline Carousel -->
+    <string name="days_until">%d DÍAS</string>
+    <string name="today">HOY</string>
+    <string name="tomorrow">MAÑANA</string>
+    <string name="overdue">VENCIDO</string>
+    <string name="no_upcoming_deadlines">Sin fechas límite próximas</string>
+</resources>

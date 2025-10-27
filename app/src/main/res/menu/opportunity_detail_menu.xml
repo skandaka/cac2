@@ -3,27 +3,27 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_success_probability"
-        android:title="Check Success Probability"
+        android:id="@+id/action_get_guidance"
+        android:title="@string/ai_get_guidance"
         android:icon="@android:drawable/ic_menu_info_details"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_application_help"
-        android:title="Get Application Help"
+        android:title="@string/ai_application_help"
         android:icon="@android:drawable/ic_menu_help"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_generate_checklist"
-        android:title="Generate Application Checklist"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:id="@+id/action_predict_deadline"
+        android:title="@string/ai_predict_deadline"
+        android:icon="@android:drawable/ic_menu_recent_history"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_predict_deadline"
-        android:title="Predict Deadline (Rolling)"
-        android:icon="@android:drawable/ic_menu_recent_history"
+        android:id="@+id/action_export_pdf"
+        android:title="@string/export_pdf"
+        android:icon="@android:drawable/ic_menu_save"
         app:showAsAction="never" />
 
 </menu>
