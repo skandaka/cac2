@@ -36,7 +36,9 @@ class AuthManager(context: Context) {
         prefs.edit().clear().apply()
     }
 
-    fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+    fun isLoggedIn(): Boolean {
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+    }
 
     fun getCurrentUserId(): Long = prefs.getLong(KEY_USER_ID, -1)
 

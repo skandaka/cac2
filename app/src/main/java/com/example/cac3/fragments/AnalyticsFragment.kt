@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
@@ -13,6 +14,11 @@ import com.example.cac3.R
 import com.example.cac3.data.database.AppDatabase
 import com.example.cac3.data.model.OpportunityCategory
 import com.example.cac3.util.AuthManager
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.PercentFormatter
 import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -26,10 +32,12 @@ class AnalyticsFragment : Fragment() {
     private lateinit var authManager: AuthManager
     private lateinit var database: AppDatabase
 
+    private lateinit var timeBreakdownPieChart: PieChart
     private lateinit var timeBreakdownContainer: LinearLayout
     private lateinit var impactMetricsContainer: LinearLayout
     private lateinit var trendsContainer: LinearLayout
-    private lateinit var timelineContainer: LinearLayout
+    private lateinit var upcomingDeadlinesScroll: HorizontalScrollView
+    private lateinit var upcomingDeadlinesContainer: LinearLayout
 
     private lateinit var totalHoursTextView: TextView
     private lateinit var totalImpactTextView: TextView
@@ -57,7 +65,9 @@ class AnalyticsFragment : Fragment() {
         timeBreakdownContainer = view.findViewById(R.id.timeBreakdownContainer)
         impactMetricsContainer = view.findViewById(R.id.impactMetricsContainer)
         trendsContainer = view.findViewById(R.id.trendsContainer)
-        timelineContainer = view.findViewById(R.id.timelineContainer)
+
+        // Initialize upcoming deadlines carousel (will be added to layout later if not present)
+        // These will be available once we update the layout file
 
         totalHoursTextView = view.findViewById(R.id.totalHoursTextView)
         totalImpactTextView = view.findViewById(R.id.totalImpactTextView)
@@ -71,7 +81,7 @@ class AnalyticsFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 val commitments = database.userDao().getUserCommitmentsSync(userId)
-                val allOpportunities = database.opportunityDao().getAllOpportunities().value ?: emptyList()
+                val allOpportunities = database.opportunityDao().getAllOpportunitiesSync()
 
                 // Load time breakdown analytics
                 loadTimeBreakdown(commitments)
@@ -82,8 +92,8 @@ class AnalyticsFragment : Fragment() {
                 // Load opportunity trends
                 loadOpportunityTrends(allOpportunities)
 
-                // Load timeline view
-                loadTimelineView(commitments)
+                // Load upcoming deadlines carousel
+                loadUpcomingDeadlines(commitments)
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -124,20 +134,23 @@ class AnalyticsFragment : Fragment() {
 
         // Create visual breakdown
         timeBreakdownContainer.removeAllViews()
-        val colors = mapOf(
-            OpportunityCategory.COMPETITION to "#E91E63",
-            OpportunityCategory.EMPLOYMENT to "#2196F3",
-            OpportunityCategory.VOLUNTEERING to "#4CAF50",
-            OpportunityCategory.CLUB to "#FF9800",
-            OpportunityCategory.COLLEGE to "#9C27B0",
-            OpportunityCategory.SUMMER_PROGRAM to "#00BCD4",
-            OpportunityCategory.INTERNSHIP to "#3F51B5"
-        )
 
-        categoryBreakdown.entries.sortedByDescending { it.value }.forEach { (category, hours) ->
-            val percentage = if (totalHours > 0) (hours * 100 / totalHours) else 0
-            val card = createCategoryCard(category, hours, percentage, colors[category] ?: "#9E9E9E")
-            timeBreakdownContainer.addView(card)
+        if (categoryBreakdown.isNotEmpty()) {
+            val colors = mapOf(
+                OpportunityCategory.COMPETITION to "#E91E63",
+                OpportunityCategory.EMPLOYMENT to "#2196F3",
+                OpportunityCategory.VOLUNTEERING to "#4CAF50",
+                OpportunityCategory.CLUB to "#FF9800",
+                OpportunityCategory.COLLEGE to "#9C27B0",
+                OpportunityCategory.SUMMER_PROGRAM to "#00BCD4",
+                OpportunityCategory.INTERNSHIP to "#3F51B5"
+            )
+
+            categoryBreakdown.entries.sortedByDescending { it.value }.forEach { (category, hours) ->
+                val percentage = if (totalHours > 0) (hours * 100 / totalHours) else 0
+                val card = createCategoryCard(category, hours, percentage, colors[category] ?: "#9E9E9E")
+                timeBreakdownContainer.addView(card)
+            }
         }
     }
 
@@ -179,37 +192,39 @@ class AnalyticsFragment : Fragment() {
 
         impactMetricsContainer.removeAllViews()
 
-        // Service Hours Card
-        impactMetricsContainer.addView(createMetricCard(
-            "Community Service Hours",
-            "$serviceHours hours",
-            "Enough for graduation requirements!",
-            "#4CAF50"
-        ))
+        if (commitments.isNotEmpty()) {
+            // Service Hours Card
+            impactMetricsContainer.addView(createMetricCard(
+                "Community Service Hours",
+                "$serviceHours hours",
+                if (serviceHours >= 40) "Excellent progress!" else "Keep going!",
+                "#4CAF50"
+            ))
 
-        // People Impacted
-        impactMetricsContainer.addView(createMetricCard(
-            "People Impacted",
-            "$peopleImpacted people",
-            "Through volunteer work",
-            "#2196F3"
-        ))
+            // People Impacted
+            impactMetricsContainer.addView(createMetricCard(
+                "People Impacted",
+                "$peopleImpacted people",
+                "Through volunteer work",
+                "#2196F3"
+            ))
 
-        // Skills Developed
-        impactMetricsContainer.addView(createMetricCard(
-            "Skills Developed",
-            "${skillsDeveloped.size} skills",
-            skillsDeveloped.take(5).joinToString(", "),
-            "#FF9800"
-        ))
+            // Skills Developed
+            impactMetricsContainer.addView(createMetricCard(
+                "Skills Developed",
+                "${skillsDeveloped.size} skills",
+                if (skillsDeveloped.isNotEmpty()) skillsDeveloped.take(5).joinToString(", ") else "Track your growth",
+                "#FF9800"
+            ))
 
-        // Scholarship Potential
-        impactMetricsContainer.addView(createMetricCard(
-            "Scholarship Potential",
-            "$$scholarshipPotential",
-            "From current activities",
-            "#9C27B0"
-        ))
+            // Scholarship Potential
+            impactMetricsContainer.addView(createMetricCard(
+                "Scholarship Potential",
+                "$$scholarshipPotential",
+                "From current activities",
+                "#9C27B0"
+            ))
+        }
     }
 
     private fun loadOpportunityTrends(opportunities: List<com.example.cac3.data.model.Opportunity>) {
@@ -245,61 +260,114 @@ class AnalyticsFragment : Fragment() {
         ))
     }
 
-    private suspend fun loadTimelineView(commitments: List<com.example.cac3.data.model.UserCommitment>) {
-        timelineContainer.removeAllViews()
+    private suspend fun loadUpcomingDeadlines(commitments: List<com.example.cac3.data.model.UserCommitment>) {
+        // Check if views are initialized
+        if (!::upcomingDeadlinesContainer.isInitialized) return
 
-        val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
-        val upcomingEvents = mutableListOf<Triple<String, Long, String>>()
+        upcomingDeadlinesContainer.removeAllViews()
+
+        val dateFormat = SimpleDateFormat("MMM dd", Locale.US)
+        val upcomingDeadlines = mutableListOf<Triple<String, Long, String>>()
 
         for (commitment in commitments) {
             val opportunity = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
             if (opportunity != null) {
-                // Add start dates
-                if (commitment.startDate != null && commitment.startDate!! > System.currentTimeMillis()) {
-                    upcomingEvents.add(Triple(
-                        "${opportunity.title} - Starts",
-                        commitment.startDate!!,
-                        "#4CAF50"
-                    ))
-                }
-
                 // Add deadlines
                 if (opportunity.deadline != null && opportunity.deadline!! > System.currentTimeMillis()) {
-                    upcomingEvents.add(Triple(
-                        "${opportunity.title} - Deadline",
+                    upcomingDeadlines.add(Triple(
+                        opportunity.title,
                         opportunity.deadline!!,
-                        "#F44336"
-                    ))
-                }
-
-                // Add end dates
-                if (commitment.endDate != null && commitment.endDate!! > System.currentTimeMillis()) {
-                    upcomingEvents.add(Triple(
-                        "${opportunity.title} - Ends",
-                        commitment.endDate!!,
-                        "#FF9800"
+                        opportunity.category.toString()
                     ))
                 }
             }
         }
 
-        // Sort by date
-        upcomingEvents.sortBy { it.second }
+        // Sort by date (nearest first)
+        upcomingDeadlines.sortBy { it.second }
 
-        // Display timeline
-        upcomingEvents.take(10).forEach { (title, date, color) ->
-            timelineContainer.addView(createTimelineItem(title, dateFormat.format(Date(date)), color))
+        // Display horizontal carousel of deadlines
+        upcomingDeadlines.take(10).forEach { (title, deadline, category) ->
+            upcomingDeadlinesContainer.addView(createDeadlineCard(title, dateFormat.format(Date(deadline)), category, deadline))
         }
 
-        if (upcomingEvents.isEmpty()) {
+        if (upcomingDeadlines.isEmpty()) {
             val emptyView = TextView(requireContext()).apply {
-                text = "No upcoming events. Add commitments to see your timeline!"
+                text = "No upcoming deadlines"
                 textSize = 14f
                 setTextColor(Color.parseColor("#757575"))
-                setPadding(32, 32, 32, 32)
+                setPadding(48, 48, 48, 48)
             }
-            timelineContainer.addView(emptyView)
+            upcomingDeadlinesContainer.addView(emptyView)
         }
+    }
+
+    private fun createDeadlineCard(title: String, date: String, category: String, deadline: Long): View {
+        val card = MaterialCardView(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                350, // Fixed width for horizontal scrolling
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = 16
+            }
+            radius = 12f
+            cardElevation = 4f
+            setCardBackgroundColor(Color.WHITE)
+        }
+
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+
+        // Days until deadline
+        val daysUntil = ((deadline - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).toInt()
+        val urgencyColor = when {
+            daysUntil <= 7 -> "#F44336"
+            daysUntil <= 30 -> "#FF9800"
+            else -> "#4CAF50"
+        }
+
+        val daysText = TextView(requireContext()).apply {
+            text = when {
+                daysUntil == 0 -> "TODAY"
+                daysUntil == 1 -> "TOMORROW"
+                daysUntil < 0 -> "OVERDUE"
+                else -> "$daysUntil DAYS"
+            }
+            textSize = 24f
+            setTextColor(Color.parseColor(urgencyColor))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+
+        val titleText = TextView(requireContext()).apply {
+            text = title
+            textSize = 16f
+            setTextColor(Color.parseColor("#212121"))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+
+        val dateText = TextView(requireContext()).apply {
+            text = date
+            textSize = 14f
+            setTextColor(Color.parseColor("#757575"))
+        }
+
+        val categoryText = TextView(requireContext()).apply {
+            text = category.replace("_", " ")
+            textSize = 12f
+            setTextColor(Color.parseColor("#9E9E9E"))
+        }
+
+        container.addView(daysText)
+        container.addView(titleText)
+        container.addView(dateText)
+        container.addView(categoryText)
+        card.addView(container)
+
+        return card
     }
 
     private fun createCategoryCard(category: OpportunityCategory, hours: Int, percentage: Int, color: String): View {
@@ -436,56 +504,6 @@ class AnalyticsFragment : Fragment() {
         card.addView(container)
 
         return card
-    }
-
-    private fun createTimelineItem(title: String, date: String, color: String): View {
-        val container = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 24)
-            }
-        }
-
-        val dot = View(requireContext()).apply {
-            layoutParams = LinearLayout.LayoutParams(16, 16).apply {
-                marginEnd = 16
-                topMargin = 4
-            }
-            setBackgroundColor(Color.parseColor(color))
-            val drawable = android.graphics.drawable.GradientDrawable()
-            drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
-            drawable.setColor(Color.parseColor(color))
-            background = drawable
-        }
-
-        val textContainer = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        }
-
-        val titleText = TextView(requireContext()).apply {
-            text = title
-            textSize = 14f
-            setTextColor(Color.parseColor("#212121"))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-        }
-
-        val dateText = TextView(requireContext()).apply {
-            text = date
-            textSize = 12f
-            setTextColor(Color.parseColor("#757575"))
-        }
-
-        textContainer.addView(titleText)
-        textContainer.addView(dateText)
-
-        container.addView(dot)
-        container.addView(textContainer)
-
-        return container
     }
 
     override fun onResume() {

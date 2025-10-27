@@ -93,6 +93,9 @@ dependencies {
     // Security for encrypted API key storage
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Charts and Visualizations
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

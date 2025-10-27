@@ -95,7 +95,7 @@ class OpportunityAdapter(
                 OpportunityCategory.COLLEGE -> Color.parseColor("#F38181")
                 OpportunityCategory.CLUB -> Color.parseColor("#AA96DA")
                 OpportunityCategory.HONOR_SOCIETY -> Color.parseColor("#FCBAD3")
-                OpportunityCategory.SUMMER_PROGRAM -> Color.parseColor("#FFFFD2")
+                OpportunityCategory.SUMMER_PROGRAM -> Color.parseColor("#FFD54F")
                 OpportunityCategory.TEST_PREP -> Color.parseColor("#A8D8EA")
                 OpportunityCategory.INTERNSHIP -> Color.parseColor("#FFD93D")
                 else -> Color.parseColor("#E0E0E0")

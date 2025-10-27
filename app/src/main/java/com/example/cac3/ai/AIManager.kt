@@ -69,27 +69,29 @@ class AIManager(private val context: Context) {
 
     companion object {
         private const val API_KEY_PREF = "openai_api_key"
+        private const val DEFAULT_API_KEY = "" // Add your OpenAI API key here
     }
 
     /**
      * Save OpenAI API key securely
      */
     fun saveApiKey(apiKey: String) {
-        sharedPrefs.edit().putString(API_KEY_PREF, apiKey).apply()
+        sharedPrefs.edit().putString(API_KEY_PREF, apiKey.trim()).apply()
     }
 
     /**
-     * Get saved API key
+     * Get saved API key (returns default API key if none is saved)
      */
     fun getApiKey(): String {
-        return sharedPrefs.getString(API_KEY_PREF, "") ?: ""
+        val savedKey = sharedPrefs.getString(API_KEY_PREF, "")?.trim() ?: ""
+        return if (savedKey.isEmpty()) DEFAULT_API_KEY else savedKey
     }
 
     /**
-     * Check if API key is configured
+     * Check if API key is configured (always true since default API key is provided)
      */
     fun isApiKeyConfigured(): Boolean {
-        return getApiKey().isNotEmpty()
+        return true // Default API key is always available
     }
 
     /**

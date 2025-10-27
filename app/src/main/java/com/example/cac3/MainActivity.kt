@@ -3,6 +3,9 @@ package com.example.cac3
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.example.cac3.activities.LoginActivity
 import com.example.cac3.fragments.AddOpportunityFragment
@@ -22,29 +25,54 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Enable edge-to-edge display
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         // Check authentication
         authManager = AuthManager(this)
         if (!authManager.isLoggedIn()) {
-            startActivity(Intent(this, LoginActivity::class.java))
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
             finish()
             return
         }
 
         setContentView(R.layout.activity_main_new)
 
-        // Handle edge-to-edge display for camera cutout
-        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, insets.systemWindowInsetTop, 0, 0)
-            insets
+        // Handle camera cutout and system bars
+        val rootView = findViewById<android.view.View>(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(
+                insets.left,
+                insets.top,
+                insets.right,
+                0 // Don't add bottom padding here, bottomNav handles it
+            )
+            windowInsets
         }
 
         bottomNav = findViewById(R.id.bottomNavigation)
         setupBottomNavigation()
 
-        // Load default fragment
-        if (savedInstanceState == null) {
-            loadFragment(DashboardFragment())
+        // Handle bottom navigation padding for system bars
+        ViewCompat.setOnApplyWindowInsetsListener(bottomNav) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                insets.bottom
+            )
+            windowInsets
         }
+
+        // Always load fresh fragment - don't restore saved state to prevent showing wrong user's data
+        // This is critical for security and data isolation between user accounts
+        loadFragment(DashboardFragment())
     }
 
     private fun setupBottomNavigation() {

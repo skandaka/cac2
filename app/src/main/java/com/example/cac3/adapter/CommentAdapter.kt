@@ -17,12 +17,18 @@ import java.util.concurrent.TimeUnit
 /**
  * Adapter for displaying comments in a RecyclerView
  */
-class CommentAdapter : ListAdapter<Comment, CommentAdapter.CommentViewHolder>(CommentDiffCallback()) {
+class CommentAdapter(
+    private val currentUserId: Long,
+    private val onEditClick: (Comment) -> Unit,
+    private val onDeleteClick: (Comment) -> Unit,
+    private val onReplyClick: (Comment) -> Unit,
+    private val onUpvoteClick: (Comment) -> Unit
+) : ListAdapter<Comment, CommentAdapter.CommentViewHolder>(CommentDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_comment, parent, false)
-        return CommentViewHolder(view)
+        return CommentViewHolder(view, currentUserId, onEditClick, onDeleteClick, onReplyClick, onUpvoteClick)
     }
 
     override fun onBindViewHolder(holder: CommentViewHolder, position: Int) {
@@ -30,45 +36,119 @@ class CommentAdapter : ListAdapter<Comment, CommentAdapter.CommentViewHolder>(Co
         holder.bind(comment)
     }
 
-    class CommentViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class CommentViewHolder(
+        itemView: View,
+        private val currentUserId: Long,
+        private val onEditClick: (Comment) -> Unit,
+        private val onDeleteClick: (Comment) -> Unit,
+        private val onReplyClick: (Comment) -> Unit,
+        private val onUpvoteClick: (Comment) -> Unit
+    ) : RecyclerView.ViewHolder(itemView) {
         private val userNameTextView: TextView = itemView.findViewById(R.id.userNameTextView)
+        private val userGradeTextView: TextView = itemView.findViewById(R.id.userGradeTextView)
+        private val verifiedBadge: TextView = itemView.findViewById(R.id.verifiedBadge)
         private val insightTypeBadge: TextView = itemView.findViewById(R.id.insightTypeBadge)
+        private val ratingLayout: View = itemView.findViewById(R.id.ratingLayout)
+        private val commentRatingBar: android.widget.RatingBar = itemView.findViewById(R.id.commentRatingBar)
+        private val ratingTextView: TextView = itemView.findViewById(R.id.ratingTextView)
         private val commentTextView: TextView = itemView.findViewById(R.id.commentTextView)
+        private val resourceLinksLayout: View = itemView.findViewById(R.id.resourceLinksLayout)
+        private val resourceLinksTextView: TextView = itemView.findViewById(R.id.resourceLinksTextView)
         private val timestampTextView: TextView = itemView.findViewById(R.id.timestampTextView)
         private val upvoteCountTextView: TextView = itemView.findViewById(R.id.upvoteCountTextView)
+        private val replyButton: TextView = itemView.findViewById(R.id.replyButton)
+        private val editButton: android.widget.ImageButton = itemView.findViewById(R.id.editButton)
+        private val deleteButton: android.widget.ImageButton = itemView.findViewById(R.id.deleteButton)
 
         fun bind(comment: Comment) {
+            // User name and grade
             userNameTextView.text = comment.userName
+
+            if (comment.userGrade != null) {
+                userGradeTextView.text = "Grade ${comment.userGrade}"
+                userGradeTextView.visibility = View.VISIBLE
+            } else {
+                userGradeTextView.visibility = View.GONE
+            }
+
+            // Verified participant badge
+            if (comment.isVerifiedParticipant) {
+                verifiedBadge.visibility = View.VISIBLE
+            } else {
+                verifiedBadge.visibility = View.GONE
+            }
+
+            // Comment text
             commentTextView.text = comment.comment
+
+            // Rating
+            if (comment.rating != null && comment.rating > 0) {
+                ratingLayout.visibility = View.VISIBLE
+                commentRatingBar.rating = comment.rating.toFloat()
+                ratingTextView.text = "${comment.rating}/5"
+            } else {
+                ratingLayout.visibility = View.GONE
+            }
+
+            // Resource links
+            if (comment.hasResources && !comment.resourceLinks.isNullOrEmpty()) {
+                resourceLinksLayout.visibility = View.VISIBLE
+                resourceLinksTextView.text = comment.resourceLinks
+            } else {
+                resourceLinksLayout.visibility = View.GONE
+            }
+
+            // Timestamp and upvotes
             timestampTextView.text = getTimeAgo(comment.createdAt)
             upvoteCountTextView.text = "${comment.upvotes} helpful"
 
             // Set insight type badge
             insightTypeBadge.text = formatInsightType(comment.insightType)
             insightTypeBadge.setBackgroundColor(getInsightTypeColor(comment.insightType))
+
+            // Show edit/delete buttons only if current user owns this comment
+            val isOwnComment = comment.userId != null && comment.userId == currentUserId
+            editButton.visibility = if (isOwnComment) View.VISIBLE else View.GONE
+            deleteButton.visibility = if (isOwnComment) View.VISIBLE else View.GONE
+
+            // Set click listeners
+            upvoteCountTextView.setOnClickListener { onUpvoteClick(comment) }
+            replyButton.setOnClickListener { onReplyClick(comment) }
+            editButton.setOnClickListener { onEditClick(comment) }
+            deleteButton.setOnClickListener { onDeleteClick(comment) }
         }
 
         private fun formatInsightType(type: InsightType): String {
             return when (type) {
+                InsightType.HELP -> "HELP"
+                InsightType.OPINION -> "OPINION"
+                InsightType.STUDY_RESOURCES -> "RESOURCES"
+                InsightType.TIPS -> "TIPS"
+                InsightType.EXPERIENCE -> "EXPERIENCE"
+                InsightType.QUESTION -> "QUESTION"
                 InsightType.TIME_REALITY_CHECK -> "TIME"
                 InsightType.HIDDEN_COSTS -> "COST"
                 InsightType.APPLICATION_TIP -> "TIP"
                 InsightType.IMPACT_STORY -> "STORY"
                 InsightType.WARNING -> "WARNING"
                 InsightType.SOCIAL_INFO -> "SOCIAL"
-                InsightType.GENERAL_REVIEW -> "REVIEW"
             }
         }
 
         private fun getInsightTypeColor(type: InsightType): Int {
             return when (type) {
+                InsightType.HELP -> itemView.context.getColor(R.color.accent)
+                InsightType.OPINION -> itemView.context.getColor(R.color.primary)
+                InsightType.STUDY_RESOURCES -> itemView.context.getColor(R.color.subject_stem)
+                InsightType.TIPS -> itemView.context.getColor(R.color.subject_business)
+                InsightType.EXPERIENCE -> itemView.context.getColor(R.color.subject_arts)
+                InsightType.QUESTION -> itemView.context.getColor(R.color.primary)
                 InsightType.TIME_REALITY_CHECK -> itemView.context.getColor(R.color.subject_stem)
                 InsightType.HIDDEN_COSTS -> itemView.context.getColor(R.color.error)
                 InsightType.APPLICATION_TIP -> itemView.context.getColor(R.color.accent)
                 InsightType.IMPACT_STORY -> itemView.context.getColor(R.color.subject_arts)
                 InsightType.WARNING -> itemView.context.getColor(R.color.error)
                 InsightType.SOCIAL_INFO -> itemView.context.getColor(R.color.subject_leadership)
-                InsightType.GENERAL_REVIEW -> itemView.context.getColor(R.color.primary)
             }
         }
 

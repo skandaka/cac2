@@ -11,12 +11,19 @@ import com.example.cac3.data.model.InsightType
 @Dao
 interface CommentDao {
 
-    @Query("SELECT * FROM comments WHERE opportunityId = :opportunityId ORDER BY createdAt DESC")
+    @Query("SELECT * FROM comments WHERE opportunityId = :opportunityId AND parentCommentId IS NULL ORDER BY createdAt DESC")
     fun getCommentsForOpportunity(opportunityId: Long): LiveData<List<Comment>>
+
+    @Query("SELECT * FROM comments WHERE parentCommentId = :parentCommentId ORDER BY createdAt ASC")
+    fun getRepliesForComment(parentCommentId: Long): LiveData<List<Comment>>
+
+    @Query("SELECT COUNT(*) FROM comments WHERE parentCommentId = :parentCommentId")
+    suspend fun getReplyCount(parentCommentId: Long): Int
 
     @Query("""
         SELECT * FROM comments
         WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
         AND insightType = :insightType
         ORDER BY helpfulCount DESC, createdAt DESC
     """)
@@ -25,6 +32,7 @@ interface CommentDao {
     @Query("""
         SELECT * FROM comments
         WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
         AND isVerifiedParticipant = 1
         ORDER BY helpfulCount DESC, createdAt DESC
     """)
@@ -66,4 +74,109 @@ interface CommentDao {
 
     @Query("DELETE FROM comments WHERE opportunityId = :opportunityId")
     suspend fun deleteCommentsForOpportunity(opportunityId: Long)
+
+    // ADVANCED FILTERING QUERIES
+
+    @Query("""
+        SELECT * FROM comments
+        WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
+        ORDER BY
+            CASE :sortBy
+                WHEN 'newest' THEN createdAt
+                WHEN 'oldest' THEN -createdAt
+                WHEN 'helpful' THEN -helpfulCount
+                WHEN 'rating' THEN -COALESCE(rating, 0)
+                ELSE createdAt
+            END DESC
+    """)
+    fun getCommentsSorted(opportunityId: Long, sortBy: String): LiveData<List<Comment>>
+
+    @Query("""
+        SELECT * FROM comments
+        WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
+        AND (:filterType IS NULL OR insightType = :filterType)
+        AND (:minRating IS NULL OR rating >= :minRating)
+        AND (:verifiedOnly = 0 OR isVerifiedParticipant = 1)
+        AND (:withResourcesOnly = 0 OR hasResources = 1)
+        ORDER BY
+            isPinned DESC,
+            CASE :sortBy
+                WHEN 'newest' THEN createdAt
+                WHEN 'oldest' THEN -createdAt
+                WHEN 'helpful' THEN -helpfulCount
+                WHEN 'rating' THEN -COALESCE(rating, 0)
+                ELSE createdAt
+            END DESC
+    """)
+    fun getFilteredComments(
+        opportunityId: Long,
+        filterType: InsightType?,
+        minRating: Int?,
+        verifiedOnly: Boolean,
+        withResourcesOnly: Boolean,
+        sortBy: String
+    ): LiveData<List<Comment>>
+
+    @Query("""
+        SELECT * FROM comments
+        WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
+        AND insightType IN (:types)
+        ORDER BY isPinned DESC, helpfulCount DESC, createdAt DESC
+    """)
+    fun getCommentsByTypes(opportunityId: Long, types: List<InsightType>): LiveData<List<Comment>>
+
+    @Query("""
+        SELECT * FROM comments
+        WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
+        AND hasResources = 1
+        ORDER BY helpfulCount DESC, createdAt DESC
+    """)
+    fun getCommentsWithResources(opportunityId: Long): LiveData<List<Comment>>
+
+    @Query("""
+        SELECT * FROM comments
+        WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
+        AND isPinned = 1
+        ORDER BY createdAt DESC
+    """)
+    fun getPinnedComments(opportunityId: Long): LiveData<List<Comment>>
+
+    @Query("""
+        SELECT * FROM comments
+        WHERE opportunityId = :opportunityId
+        AND parentCommentId IS NULL
+        AND rating >= :minRating
+        ORDER BY rating DESC, helpfulCount DESC
+    """)
+    fun getHighRatedComments(opportunityId: Long, minRating: Int): LiveData<List<Comment>>
+
+    @Query("""
+        SELECT AVG(rating) FROM comments
+        WHERE opportunityId = :opportunityId
+        AND rating IS NOT NULL
+    """)
+    suspend fun getAverageRating(opportunityId: Long): Double?
+
+    @Query("""
+        SELECT COUNT(*) FROM comments
+        WHERE opportunityId = :opportunityId
+        AND insightType = :type
+    """)
+    suspend fun getCommentCountByType(opportunityId: Long, type: InsightType): Int
+
+    @Query("""
+        UPDATE comments
+        SET reportCount = reportCount + 1,
+            isFlagged = CASE WHEN reportCount + 1 >= 3 THEN 1 ELSE isFlagged END
+        WHERE id = :commentId
+    """)
+    suspend fun reportComment(commentId: Long)
+
+    @Query("UPDATE comments SET isPinned = :pinned WHERE id = :commentId")
+    suspend fun setPinned(commentId: Long, pinned: Boolean)
 }

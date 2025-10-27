@@ -14,7 +14,7 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- User and Insight Type -->
+        <!-- User Info, Grade, and Insight Type -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -32,6 +32,31 @@
                 android:textStyle="bold"/>
 
             <TextView
+                android:id="@+id/userGradeTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Grade 11"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/verifiedBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="✓ VERIFIED"
+                android:textSize="9sp"
+                android:textColor="@android:color/white"
+                android:background="@color/accent"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:visibility="gone"/>
+
+            <TextView
                 android:id="@+id/insightTypeBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -46,6 +71,39 @@
 
         </LinearLayout>
 
+        <!-- Rating Section -->
+        <LinearLayout
+            android:id="@+id/ratingLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <RatingBar
+                android:id="@+id/commentRatingBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:numStars="5"
+                android:stepSize="1"
+                android:isIndicator="true"
+                style="?android:attr/ratingBarStyleSmall"
+                android:scaleX="1.2"
+                android:scaleY="1.2"/>
+
+            <TextView
+                android:id="@+id/ratingTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="5/5"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold"/>
+
+        </LinearLayout>
+
         <!-- Comment Text -->
         <TextView
             android:id="@+id/commentTextView"
@@ -56,6 +114,38 @@
             android:textSize="14sp"
             android:textColor="@color/text_primary"
             android:lineSpacingMultiplier="1.2"/>
+
+        <!-- Resource Links Section -->
+        <LinearLayout
+            android:id="@+id/resourceLinksLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:background="@color/surface_variant"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📎 Helpful Resources:"
+                android:textSize="11sp"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/resourceLinksTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="https://example.com/guide"
+                android:textSize="12sp"
+                android:textColor="@color/primary"
+                android:autoLink="web"
+                android:linksClickable="true"/>
+
+        </LinearLayout>
 
         <!-- Timestamp and Actions -->
         <LinearLayout
@@ -82,7 +172,49 @@
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:drawableStart="@android:drawable/star_on"
-                android:drawablePadding="4dp"/>
+                android:drawablePadding="4dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"/>
+
+            <TextView
+                android:id="@+id/replyButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="Reply"
+                android:textSize="12sp"
+                android:textColor="@color/primary"
+                android:textStyle="bold"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:background="?attr/selectableItemBackground"/>
+
+            <ImageButton
+                android:id="@+id/editButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_edit"
+                android:contentDescription="Edit comment"
+                android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/deleteButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_delete"
+                android:contentDescription="Delete comment"
+                android:visibility="gone"/>
 
         </LinearLayout>
 

@@ -4,6 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.cac3.MainActivity
 import com.example.cac3.R
@@ -28,6 +31,9 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Enable edge-to-edge display
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         // Check if already logged in
         authManager = AuthManager(this)
         if (authManager.isLoggedIn()) {
@@ -38,10 +44,14 @@ class LoginActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_login)
 
-        // Handle edge-to-edge display for camera cutout
-        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, insets.systemWindowInsetTop, 0, 0)
-            insets
+        // Handle camera cutout and system bars
+        val rootView = findViewById<android.view.View>(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            windowInsets
         }
 
         database = AppDatabase.getDatabase(this)
@@ -91,7 +101,9 @@ class LoginActivity : AppCompatActivity() {
                 )
 
                 // Navigate to main app
-                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
                 finish()
             } else {
                 runOnUiThread {

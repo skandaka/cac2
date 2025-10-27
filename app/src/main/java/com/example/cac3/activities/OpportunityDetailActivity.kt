@@ -11,6 +11,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
@@ -23,9 +26,11 @@ import com.example.cac3.ai.DeadlinePrediction
 import com.example.cac3.data.database.AppDatabase
 import com.example.cac3.data.model.CommitmentStatus
 import com.example.cac3.data.model.Opportunity
+import com.example.cac3.data.model.OpportunityCategory
 import com.example.cac3.data.model.Team
 import com.example.cac3.data.model.TeamRequest
 import com.example.cac3.data.model.UserCommitment
+import com.example.cac3.fragments.OpportunityCommentsTabFragment
 import com.example.cac3.fragments.OpportunityDetailsTabFragment
 import com.example.cac3.util.AuthManager
 import com.google.android.material.appbar.MaterialToolbar
@@ -54,12 +59,20 @@ class OpportunityDetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Enable edge-to-edge display
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContentView(R.layout.activity_opportunity_detail)
 
-        // Handle edge-to-edge display for camera cutout
-        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, insets.systemWindowInsetTop, 0, 0)
-            insets
+        // Handle camera cutout and system bars
+        val rootView = findViewById<android.view.View>(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            windowInsets
         }
 
         database = AppDatabase.getDatabase(this)
@@ -146,6 +159,7 @@ class OpportunityDetailActivity : AppCompatActivity() {
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Details"
+                1 -> "Comments"
                 else -> ""
             }
         }.attach()
@@ -197,7 +211,20 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     currentOpp?.hoursPerWeekMax != null -> {
                         currentOpp.hoursPerWeekMax
                     }
-                    else -> 0 // Default if no hours specified
+                    else -> {
+                        // Provide reasonable defaults based on category when hours not specified
+                        when (currentOpp?.category) {
+                            OpportunityCategory.CLUB -> 2
+                            OpportunityCategory.HONOR_SOCIETY -> 1
+                            OpportunityCategory.VOLUNTEERING -> 3
+                            OpportunityCategory.EMPLOYMENT -> 10
+                            OpportunityCategory.INTERNSHIP -> 15
+                            OpportunityCategory.COMPETITION -> 5
+                            OpportunityCategory.SUMMER_PROGRAM -> 30
+                            OpportunityCategory.TEST_PREP -> 4
+                            else -> 3 // General default
+                        }
+                    }
                 }
 
                 val commitment = UserCommitment(
@@ -600,7 +627,7 @@ class OpportunityDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 // Get similar opportunities (same category)
-                val allOpportunities = database.opportunityDao().getAllOpportunities().value ?: emptyList()
+                val allOpportunities = database.opportunityDao().getAllOpportunitiesSync()
                 val similarOpportunities = allOpportunities.filter {
                     it.category == currentOpp.category && it.id != currentOpp.id
                 }
@@ -734,11 +761,12 @@ class OpportunityDetailActivity : AppCompatActivity() {
         private val opportunityId: Long
     ) : FragmentStateAdapter(activity) {
 
-        override fun getItemCount(): Int = 1
+        override fun getItemCount(): Int = 2
 
         override fun createFragment(position: Int): Fragment {
             return when (position) {
                 0 -> OpportunityDetailsTabFragment.newInstance(opportunityId)
+                1 -> OpportunityCommentsTabFragment.newInstance(opportunityId)
                 else -> Fragment()
             }
         }

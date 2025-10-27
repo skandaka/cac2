@@ -99,34 +99,52 @@ class DashboardFragment : Fragment() {
             set(java.util.Calendar.MILLISECOND, 0)
         }
         val normalizedDate = selectedCal.timeInMillis
+        val today = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
 
         val commitmentsOnDate = allCommitments.filter { commitment ->
             val startDate = commitment.commitment.startDate
             val endDate = commitment.commitment.endDate
 
-            // Only show commitments that have both start and end dates set
-            if (startDate != null && endDate != null) {
-                // Normalize start and end dates for accurate comparison
-                val startCal = java.util.Calendar.getInstance().apply {
-                    timeInMillis = startDate
-                    set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    set(java.util.Calendar.MINUTE, 0)
-                    set(java.util.Calendar.SECOND, 0)
-                    set(java.util.Calendar.MILLISECOND, 0)
+            when {
+                // If both dates are set, check if selected date falls within range
+                startDate != null && endDate != null -> {
+                    val startCal = java.util.Calendar.getInstance().apply {
+                        timeInMillis = startDate
+                        set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }
+                    val endCal = java.util.Calendar.getInstance().apply {
+                        timeInMillis = endDate
+                        set(java.util.Calendar.HOUR_OF_DAY, 23)
+                        set(java.util.Calendar.MINUTE, 59)
+                        set(java.util.Calendar.SECOND, 59)
+                        set(java.util.Calendar.MILLISECOND, 999)
+                    }
+                    normalizedDate >= startCal.timeInMillis && normalizedDate <= endCal.timeInMillis
                 }
-                val endCal = java.util.Calendar.getInstance().apply {
-                    timeInMillis = endDate
-                    set(java.util.Calendar.HOUR_OF_DAY, 23)
-                    set(java.util.Calendar.MINUTE, 59)
-                    set(java.util.Calendar.SECOND, 59)
-                    set(java.util.Calendar.MILLISECOND, 999)
+                // If only start date is set, show from start date onwards
+                startDate != null && endDate == null -> {
+                    val startCal = java.util.Calendar.getInstance().apply {
+                        timeInMillis = startDate
+                        set(java.util.Calendar.HOUR_OF_DAY, 0)
+                        set(java.util.Calendar.MINUTE, 0)
+                        set(java.util.Calendar.SECOND, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }
+                    normalizedDate >= startCal.timeInMillis
                 }
-
-                // Check if selected date falls within the commitment period
-                normalizedDate >= startCal.timeInMillis && normalizedDate <= endCal.timeInMillis
-            } else {
-                // Don't show commitments without proper dates on the calendar
-                false
+                // If no dates are set, show for today and future dates (ongoing commitments)
+                startDate == null && endDate == null -> {
+                    normalizedDate >= today
+                }
+                else -> false
             }
         }
 
@@ -260,14 +278,25 @@ class DashboardFragment : Fragment() {
                 val user = if (userId != -1L) database.userDao().getUserById(userId) else null
                 val allOpportunities = database.opportunityDao().getAllOpportunitiesSync()
 
+                // Get user's existing commitments to filter them out
+                val userCommitments = if (userId != -1L) {
+                    database.userDao().getUserCommitmentsSync(userId)
+                } else {
+                    emptyList()
+                }
+                val committedOpportunityIds = userCommitments.map { it.opportunityId }.toSet()
+
+                // Filter out opportunities user is already committed to
+                val availableOpportunities = allOpportunities.filter { it.id !in committedOpportunityIds }
+
                 // Check if AI is configured
                 if (aiManager.isApiKeyConfigured() && user != null) {
                     // Use AI-powered recommendations
-                    loadAIRecommendations(user, allOpportunities)
+                    loadAIRecommendations(user, availableOpportunities)
                 } else {
                     // Fall back to basic recommendations
                     val userInterests = authManager.getCurrentUserInterests() ?: ""
-                    val basicRecommendations = getBasicRecommendations(userInterests, allOpportunities)
+                    val basicRecommendations = getBasicRecommendations(userInterests, availableOpportunities)
                     recommendationAdapter.submitList(basicRecommendations.take(10))
                 }
 

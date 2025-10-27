@@ -14,6 +14,8 @@ import com.example.cac3.data.model.UserPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Main Room database for the College Opportunity Hub app
@@ -30,7 +32,7 @@ import kotlinx.coroutines.launch
         com.example.cac3.data.model.TeamMember::class,
         com.example.cac3.data.model.TeamRequest::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -45,6 +47,10 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        @Volatile
+        private var isPopulated = false
+        private val populationMutex = Mutex()
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -66,19 +72,29 @@ abstract class AppDatabase : RoomDatabase() {
                 super.onCreate(db)
                 INSTANCE?.let { database ->
                     CoroutineScope(Dispatchers.IO).launch {
-                        populateDatabase(database)
+                        populationMutex.withLock {
+                            if (!isPopulated) {
+                                populateDatabase(database)
+                                isPopulated = true
+                            }
+                        }
                     }
                 }
             }
 
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
-                // Also populate if database is empty
+                // Only populate if never populated before (with mutex lock)
                 INSTANCE?.let { database ->
                     CoroutineScope(Dispatchers.IO).launch {
-                        val count = database.opportunityDao().getCount()
-                        if (count == 0) {
-                            populateDatabase(database)
+                        populationMutex.withLock {
+                            if (!isPopulated) {
+                                val count = database.opportunityDao().getCount()
+                                if (count == 0) {
+                                    populateDatabase(database)
+                                    isPopulated = true
+                                }
+                            }
                         }
                     }
                 }
@@ -87,6 +103,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         private suspend fun populateDatabase(database: AppDatabase) {
             val opportunityDao = database.opportunityDao()
+            // CRITICAL: Clear all existing data before populating to prevent duplicates
+            opportunityDao.deleteAll()
             val dataPopulator = DataPopulator(database)
             dataPopulator.populateAll()
         }

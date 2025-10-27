@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filter &amp; Sort Comments"
+            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Sort Options -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sort By"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <RadioGroup
+            android:id="@+id/sortRadioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/sortNewestRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Newest First"
+                android:checked="true"/>
+
+            <RadioButton
+                android:id="@+id/sortOldestRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Oldest First"/>
+
+            <RadioButton
+                android:id="@+id/sortMostHelpfulRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Most Helpful"/>
+
+            <RadioButton
+                android:id="@+id/sortHighestRatedRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Highest Rated"/>
+
+        </RadioGroup>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/surface_variant"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Filter by Insight Type -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filter by Insight Type"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <Spinner
+            android:id="@+id/insightTypeFilterSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:padding="12dp"
+            android:background="@drawable/spinner_background"/>
+
+        <!-- Filter Options -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Additional Filters"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/verifiedOnlyCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Verified Participants Only"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"/>
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/withResourcesCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Comments with Resources Only"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Minimum Rating Filter -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Minimum Rating (Optional)"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <RatingBar
+                android:id="@+id/minRatingBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:numStars="5"
+                android:stepSize="1"
+                android:rating="0"
+                style="?android:attr/ratingBarStyleSmall"
+                android:scaleX="1.5"
+                android:scaleY="1.5"/>
+
+            <TextView
+                android:id="@+id/minRatingText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="No minimum"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"/>
+
+        </LinearLayout>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="24dp"
+            android:gravity="end">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/resetFiltersButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reset"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginEnd="8dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/applyFiltersButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>
