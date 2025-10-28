@@ -330,7 +330,7 @@
                         android:id="@+id/aiSuccessProbabilityButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Calculate Success Probability"
+                        android:text="@string/ai_get_guidance"
                         android:textSize="14sp"
                         app:icon="@android:drawable/ic_menu_info_details"
                         style="@style/Widget.Material3.Button.TonalButton"/>
@@ -340,20 +340,12 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Get Application Help"
+                        android:text="@string/ai_application_help"
                         android:textSize="14sp"
                         app:icon="@android:drawable/ic_menu_edit"
                         style="@style/Widget.Material3.Button.TonalButton"/>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/aiChecklistButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Generate Application Checklist"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/ic_menu_agenda"
-                        style="@style/Widget.Material3.Button.TonalButton"/>
+                    <!-- Checklist button removed - merged with AI Path to Success button -->
 
                 </LinearLayout>
 

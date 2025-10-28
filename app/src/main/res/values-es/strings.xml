@@ -119,13 +119,13 @@
     <string name="scholarship_potential">Potencial de Becas</string>
 
     <!-- AI Features -->
-    <string name="ai_get_guidance">Obtener Orientación &amp; Lista de Verificación</string>
+    <string name="ai_get_guidance">Camino al Éxito con IA</string>
     <string name="ai_application_help">Ayuda con la Solicitud</string>
     <string name="ai_predict_deadline">Predecir Fecha Límite</string>
-    <string name="ai_guidance_title">Orientación para Mejorar Tus Posibilidades</string>
-    <string name="ai_loading">Analizando tu perfil...</string>
-    <string name="ai_not_enough_data">No tienes suficiente historial para un análisis preciso. Agrega más compromisos para obtener orientación personalizada.</string>
-    <string name="ai_error">Error al generar orientación</string>
+    <string name="ai_guidance_title">Tu Camino al Éxito</string>
+    <string name="ai_loading">Creando tu plan personalizado de éxito...</string>
+    <string name="ai_not_enough_data">¡Agrega al menos 2 compromisos para desbloquear tu plan personalizado de éxito! Esto nos ayudará a entender tus intereses y metas.</string>
+    <string name="ai_error">Error al generar tu plan de éxito</string>
 
     <!-- Filters -->
     <string name="filter_title">Filtros</string>

@@ -48,7 +48,6 @@ class OpportunityDetailsTabFragment : Fragment() {
     private lateinit var aiAssistantCard: MaterialCardView
     private lateinit var aiSuccessProbabilityButton: MaterialButton
     private lateinit var aiApplicationHelpButton: MaterialButton
-    private lateinit var aiChecklistButton: MaterialButton
 
     companion object {
         private const val ARG_OPPORTUNITY_ID = "opportunity_id"
@@ -109,7 +108,6 @@ class OpportunityDetailsTabFragment : Fragment() {
         aiAssistantCard = view.findViewById(R.id.aiAssistantCard)
         aiSuccessProbabilityButton = view.findViewById(R.id.aiSuccessProbabilityButton)
         aiApplicationHelpButton = view.findViewById(R.id.aiApplicationHelpButton)
-        aiChecklistButton = view.findViewById(R.id.aiChecklistButton)
     }
 
     private fun setupAIButtons() {
@@ -119,10 +117,10 @@ class OpportunityDetailsTabFragment : Fragment() {
 
             aiSuccessProbabilityButton.setOnClickListener {
                 (activity as? OpportunityDetailActivity)?.let { detailActivity ->
-                    // Use reflection or add a public method to call showSuccessProbability
+                    // Call the merged AI Path to Success feature
                     currentOpportunity?.let {
                         try {
-                            val method = OpportunityDetailActivity::class.java.getDeclaredMethod("showSuccessProbability")
+                            val method = OpportunityDetailActivity::class.java.getDeclaredMethod("showGuidanceAndChecklist")
                             method.isAccessible = true
                             method.invoke(detailActivity)
                         } catch (e: Exception) {
@@ -137,20 +135,6 @@ class OpportunityDetailsTabFragment : Fragment() {
                     currentOpportunity?.let {
                         try {
                             val method = OpportunityDetailActivity::class.java.getDeclaredMethod("showApplicationHelp")
-                            method.isAccessible = true
-                            method.invoke(detailActivity)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            }
-
-            aiChecklistButton.setOnClickListener {
-                (activity as? OpportunityDetailActivity)?.let { detailActivity ->
-                    currentOpportunity?.let {
-                        try {
-                            val method = OpportunityDetailActivity::class.java.getDeclaredMethod("showGenerateChecklist")
                             method.isAccessible = true
                             method.invoke(detailActivity)
                         } catch (e: Exception) {

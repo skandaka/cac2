@@ -203,22 +203,7 @@
             android:orientation="vertical"
             android:layout_marginBottom="24dp"/>
 
-        <!-- Timeline View -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Upcoming Timeline"
-            android:textSize="18sp"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="12dp"/>
-
-        <LinearLayout
-            android:id="@+id/timelineContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"/>
+        <!-- Deadlines removed - shown in Dashboard instead -->
 
     </LinearLayout>
 

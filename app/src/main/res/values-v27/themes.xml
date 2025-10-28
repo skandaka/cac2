@@ -1,0 +1,7 @@
+<resources>
+    <!-- API 27+ theme additions -->
+    <style name="Base.Theme.Cac3" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Light navigation bar for API 27+ -->
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

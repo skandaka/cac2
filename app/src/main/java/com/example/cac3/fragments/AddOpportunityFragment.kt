@@ -456,7 +456,7 @@ class AddOpportunityFragment : Fragment() {
                 // Show success message
                 Toast.makeText(
                     requireContext(),
-                    "Opportunity submitted successfully! It will be reviewed before appearing in the app.",
+                    "Opportunity added successfully! It's now live and visible to all students.",
                     Toast.LENGTH_LONG
                 ).show()
 

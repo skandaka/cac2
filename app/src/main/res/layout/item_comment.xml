@@ -168,10 +168,10 @@
                 android:id="@+id/upvoteCountTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="5 helpful"
+                android:text="Mark as Helpful"
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary"
-                android:drawableStart="@android:drawable/star_on"
+                android:drawableStart="@android:drawable/star_big_off"
                 android:drawablePadding="4dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
@@ -179,7 +179,8 @@
                 android:paddingBottom="4dp"
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
-                android:focusable="true"/>
+                android:focusable="true"
+                android:contentDescription="Mark this comment as helpful"/>
 
             <TextView
                 android:id="@+id/replyButton"

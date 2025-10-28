@@ -324,21 +324,57 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 if (guidance != null || checklist != null) {
                     showGuidanceAndChecklistDialog(guidance, checklist)
                 } else {
-                    Toast.makeText(
-                        this@OpportunityDetailActivity,
-                        getString(R.string.ai_error),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    // Get the actual error messages
+                    val guidanceError = guidanceResult.exceptionOrNull()
+                    val checklistError = checklistResult.exceptionOrNull()
+                    val errorMessage = guidanceError?.message ?: checklistError?.message ?: "Unknown error"
+
+                    val displayMessage = when {
+                        errorMessage.contains("401") || errorMessage.contains("Unauthorized") ||
+                        errorMessage.contains("API key") -> {
+                            "Invalid API key. Please check your OpenAI API key in Profile settings."
+                        }
+                        errorMessage.contains("429") || errorMessage.contains("rate limit") -> {
+                            "Rate limit exceeded. Please try again in a few moments."
+                        }
+                        errorMessage.contains("Network") || errorMessage.contains("Connection") -> {
+                            "Network error. Please check your internet connection."
+                        }
+                        else -> "Error generating guidance: $errorMessage"
+                    }
+
+                    AlertDialog.Builder(this@OpportunityDetailActivity)
+                        .setTitle("AI Error")
+                        .setMessage(displayMessage)
+                        .setPositiveButton("OK", null)
+                        .setNeutralButton("Configure API Key") { _, _ ->
+                            // Open profile to configure API key
+                            Toast.makeText(this@OpportunityDetailActivity,
+                                "Go to Profile tab to configure your API key",
+                                Toast.LENGTH_LONG).show()
+                        }
+                        .show()
                 }
 
             } catch (e: Exception) {
                 loadingDialog.dismiss()
                 e.printStackTrace()
-                Toast.makeText(
-                    this@OpportunityDetailActivity,
-                    getString(R.string.ai_error),
-                    Toast.LENGTH_SHORT
-                ).show()
+
+                val errorMessage = when {
+                    e.message?.contains("401") == true || e.message?.contains("API key") == true -> {
+                        "Invalid API key. Please check your OpenAI API key in Profile settings."
+                    }
+                    e.message?.contains("Network") == true -> {
+                        "Network error. Please check your internet connection."
+                    }
+                    else -> "Error: ${e.message ?: "Unknown error"}"
+                }
+
+                AlertDialog.Builder(this@OpportunityDetailActivity)
+                    .setTitle("AI Error")
+                    .setMessage(errorMessage)
+                    .setPositiveButton("OK", null)
+                    .show()
             }
         }
     }
@@ -347,75 +383,86 @@ class OpportunityDetailActivity : AppCompatActivity() {
         guidance: com.example.cac3.ai.SuccessProbability?,
         checklist: List<ChecklistItem>?
     ) {
-        val dialogView = LinearLayout(this).apply {
+        val contentView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(50, 30, 50, 30)
         }
+
+        // Build content text for saving
+        val contentBuilder = StringBuilder()
+        contentBuilder.append("${getString(R.string.ai_guidance_title)}\n\n")
 
         // Show guidance section (positive framing)
         if (guidance != null) {
             // Your Strengths
             if (guidance.strengths.isNotEmpty()) {
                 val strengthsTitle = TextView(this).apply {
-                    text = "✓ Your Strengths:"
+                    text = "🌟 Your Strengths"
                     textSize = 18f
                     setTextColor(getColor(R.color.success))
                     setTypeface(null, android.graphics.Typeface.BOLD)
                     setPadding(0, 10, 0, 10)
                 }
-                dialogView.addView(strengthsTitle)
+                contentView.addView(strengthsTitle)
+                contentBuilder.append("🌟 Your Strengths\n")
 
                 guidance.strengths.forEach { strength ->
                     val strengthItem = TextView(this).apply {
-                        text = "• $strength"
+                        text = "✓ $strength"
                         textSize = 14f
                         setPadding(20, 5, 0, 5)
                     }
-                    dialogView.addView(strengthItem)
+                    contentView.addView(strengthItem)
+                    contentBuilder.append("✓ $strength\n")
                 }
+                contentBuilder.append("\n")
             }
 
-            // How to Improve Your Chances
+            // Steps to Strengthen Your Application
             if (guidance.recommendations.isNotEmpty()) {
                 val recsTitle = TextView(this).apply {
-                    text = "→ How to Improve Your Chances:"
+                    text = "🎯 Steps to Strengthen Your Application"
                     textSize = 18f
                     setTextColor(getColor(R.color.primary))
                     setTypeface(null, android.graphics.Typeface.BOLD)
                     setPadding(0, 20, 0, 10)
                 }
-                dialogView.addView(recsTitle)
+                contentView.addView(recsTitle)
+                contentBuilder.append("🎯 Steps to Strengthen Your Application\n")
 
-                guidance.recommendations.forEach { rec ->
+                guidance.recommendations.forEachIndexed { index, rec ->
                     val recItem = TextView(this).apply {
-                        text = "• $rec"
+                        text = "${index + 1}. $rec"
                         textSize = 14f
                         setPadding(20, 5, 0, 5)
                     }
-                    dialogView.addView(recItem)
+                    contentView.addView(recItem)
+                    contentBuilder.append("${index + 1}. $rec\n")
                 }
+                contentBuilder.append("\n")
             }
         }
 
         // Show checklist section
         if (checklist != null && checklist.isNotEmpty()) {
             val checklistTitle = TextView(this).apply {
-                text = "☑ Application Checklist:"
+                text = "📋 Action Checklist"
                 textSize = 18f
                 setTextColor(getColor(R.color.info))
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setPadding(0, 20, 0, 10)
             }
-            dialogView.addView(checklistTitle)
+            contentView.addView(checklistTitle)
+            contentBuilder.append("📋 Action Checklist\n")
 
             checklist.take(5).forEach { item ->
                 val taskText = TextView(this).apply {
-                    text = "• ${item.task}"
+                    text = "☐ ${item.task}"
                     textSize = 14f
                     setPadding(20, 5, 0, 2)
                     setTypeface(null, android.graphics.Typeface.BOLD)
                 }
-                dialogView.addView(taskText)
+                contentView.addView(taskText)
 
                 val detailsText = TextView(this).apply {
                     text = "  ${item.description}"
@@ -423,14 +470,26 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     setTextColor(getColor(R.color.text_secondary))
                     setPadding(40, 2, 0, 8)
                 }
-                dialogView.addView(detailsText)
+                contentView.addView(detailsText)
+                contentBuilder.append("☐ ${item.task}\n  ${item.description}\n")
             }
+        }
+
+        val finalContent = contentBuilder.toString()
+
+        // Wrap in ScrollView
+        val scrollView = android.widget.ScrollView(this).apply {
+            addView(contentView)
         }
 
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.ai_guidance_title))
-            .setView(dialogView)
-            .setPositiveButton("OK", null)
+            .setView(scrollView)
+            .setPositiveButton("Let's Go!", null)
+            .setNeutralButton("Save to Notes") { _, _ ->
+                saveAINoteToPreferences("Path to Success", finalContent)
+                Toast.makeText(this, "Saved to Notes!", Toast.LENGTH_SHORT).show()
+            }
             .show()
     }
 
@@ -499,27 +558,58 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 result.onSuccess { response ->
                     showApplicationHelpResponse(response)
                 }.onFailure { error ->
-                    Toast.makeText(
-                        this@OpportunityDetailActivity,
-                        "Error: ${error.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    val errorMsg = error.message ?: "Unknown error"
+                    val displayMessage = when {
+                        errorMsg.contains("401") || errorMsg.contains("Unauthorized") ||
+                        errorMsg.contains("API key") -> {
+                            "Invalid API key. Please check your OpenAI API key in Profile settings."
+                        }
+                        errorMsg.contains("429") || errorMsg.contains("rate limit") -> {
+                            "Rate limit exceeded. Please try again in a few moments."
+                        }
+                        errorMsg.contains("Network") || errorMsg.contains("Connection") -> {
+                            "Network error. Please check your internet connection."
+                        }
+                        else -> "Error: $errorMsg"
+                    }
+
+                    AlertDialog.Builder(this@OpportunityDetailActivity)
+                        .setTitle("AI Error")
+                        .setMessage(displayMessage)
+                        .setPositiveButton("OK", null)
+                        .setNeutralButton("Configure API Key") { _, _ ->
+                            Toast.makeText(this@OpportunityDetailActivity,
+                                "Go to Profile tab to configure your API key",
+                                Toast.LENGTH_LONG).show()
+                        }
+                        .show()
                 }
 
             } catch (e: Exception) {
                 loadingDialog.dismiss()
                 e.printStackTrace()
-                Toast.makeText(
-                    this@OpportunityDetailActivity,
-                    "Error getting AI help",
-                    Toast.LENGTH_SHORT
-                ).show()
+
+                val errorMessage = when {
+                    e.message?.contains("401") == true || e.message?.contains("API key") == true -> {
+                        "Invalid API key. Please check your OpenAI API key in Profile settings."
+                    }
+                    e.message?.contains("Network") == true -> {
+                        "Network error. Please check your internet connection."
+                    }
+                    else -> "Error: ${e.message ?: "Unknown error"}"
+                }
+
+                AlertDialog.Builder(this@OpportunityDetailActivity)
+                    .setTitle("AI Error")
+                    .setMessage(errorMessage)
+                    .setPositiveButton("OK", null)
+                    .show()
             }
         }
     }
 
     private fun showApplicationHelpResponse(response: String) {
-        val dialogView = LinearLayout(this).apply {
+        val contentView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(50, 30, 50, 30)
         }
@@ -529,13 +619,22 @@ class OpportunityDetailActivity : AppCompatActivity() {
             textSize = 14f
             setPadding(0, 0, 0, 20)
         }
-        dialogView.addView(responseText)
+        contentView.addView(responseText)
+
+        // Wrap in ScrollView
+        val scrollView = android.widget.ScrollView(this).apply {
+            addView(contentView)
+        }
 
         AlertDialog.Builder(this)
             .setTitle("AI Application Assistance")
-            .setView(dialogView)
+            .setView(scrollView)
             .setPositiveButton("OK", null)
-            .setNeutralButton("Ask Another Question") { _, _ ->
+            .setNeutralButton("Save to Notes") { _, _ ->
+                saveAINoteToPreferences("Application Help", response)
+                Toast.makeText(this, "Saved to Notes!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Ask Another Question") { _, _ ->
                 showApplicationHelp()
             }
             .show()
@@ -948,6 +1047,15 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun saveAINoteToPreferences(title: String, content: String) {
+        val prefs = getSharedPreferences("ai_notes", MODE_PRIVATE)
+        val timestamp = System.currentTimeMillis()
+        val oppTitle = opportunity?.title ?: "Unknown Opportunity"
+        val noteKey = "note_$timestamp"
+        val noteData = "$oppTitle|$title|$content|$timestamp"
+        prefs.edit().putString(noteKey, noteData).apply()
     }
 
     /**

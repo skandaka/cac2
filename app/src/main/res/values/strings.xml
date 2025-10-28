@@ -119,13 +119,13 @@
     <string name="scholarship_potential">Scholarship Potential</string>
 
     <!-- AI Features -->
-    <string name="ai_get_guidance">Get Guidance &amp; Checklist</string>
+    <string name="ai_get_guidance">AI Path to Success</string>
     <string name="ai_application_help">Application Help</string>
     <string name="ai_predict_deadline">Predict Deadline</string>
-    <string name="ai_guidance_title">Guidance to Improve Your Chances</string>
-    <string name="ai_loading">Analyzing your profile...</string>
-    <string name="ai_not_enough_data">You don\'t have enough history for accurate analysis. Add more commitments to get personalized guidance.</string>
-    <string name="ai_error">Error generating guidance</string>
+    <string name="ai_guidance_title">Your Path to Success</string>
+    <string name="ai_loading">Creating your personalized success plan...</string>
+    <string name="ai_not_enough_data">Add at least 2 commitments to unlock your personalized success plan! This will help us understand your interests and goals.</string>
+    <string name="ai_error">Error generating your success plan</string>
 
     <!-- Filters -->
     <string name="filter_title">Filters</string>

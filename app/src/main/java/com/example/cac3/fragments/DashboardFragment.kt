@@ -42,15 +42,11 @@ class DashboardFragment : Fragment() {
     private lateinit var recommendationsLoadingBar: ProgressBar
     private lateinit var aiInsightsCard: com.google.android.material.card.MaterialCardView
     private lateinit var refreshRecommendationsButton: com.google.android.material.button.MaterialButton
-    private lateinit var calendarView: android.widget.CalendarView
-    private lateinit var selectedDateTextView: TextView
-    private lateinit var calendarCommitmentsTextView: TextView
+    private lateinit var upcomingDeadlinesScroll: android.widget.HorizontalScrollView
+    private lateinit var upcomingDeadlinesContainer: android.widget.LinearLayout
 
     private lateinit var commitmentAdapter: CommitmentAdapter
     private lateinit var recommendationAdapter: OpportunityAdapter
-
-    // Store commitments for calendar filtering
-    private var allCommitments: List<CommitmentWithOpportunity> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -69,95 +65,8 @@ class DashboardFragment : Fragment() {
 
         initializeViews(view)
         setupRecyclerViews()
-        setupCalendar()
         setupRefreshButton()
         loadDashboardData()
-    }
-
-    private fun setupCalendar() {
-        calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
-            val selectedDate = java.util.Calendar.getInstance().apply {
-                set(year, month, dayOfMonth, 0, 0, 0)
-                set(java.util.Calendar.MILLISECOND, 0)
-            }
-
-            val dateFormat = java.text.SimpleDateFormat("EEEE, MMMM d, yyyy", java.util.Locale.US)
-            selectedDateTextView.text = dateFormat.format(selectedDate.time)
-
-            // Filter commitments for this date
-            displayCommitmentsForDate(selectedDate.timeInMillis)
-        }
-    }
-
-    private fun displayCommitmentsForDate(dateInMillis: Long) {
-        // Normalize the selected date to midnight
-        val selectedCal = java.util.Calendar.getInstance().apply {
-            timeInMillis = dateInMillis
-            set(java.util.Calendar.HOUR_OF_DAY, 0)
-            set(java.util.Calendar.MINUTE, 0)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-        }
-        val normalizedDate = selectedCal.timeInMillis
-        val today = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, 0)
-            set(java.util.Calendar.MINUTE, 0)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-        }.timeInMillis
-
-        val commitmentsOnDate = allCommitments.filter { commitment ->
-            val startDate = commitment.commitment.startDate
-            val endDate = commitment.commitment.endDate
-
-            when {
-                // If both dates are set, check if selected date falls within range
-                startDate != null && endDate != null -> {
-                    val startCal = java.util.Calendar.getInstance().apply {
-                        timeInMillis = startDate
-                        set(java.util.Calendar.HOUR_OF_DAY, 0)
-                        set(java.util.Calendar.MINUTE, 0)
-                        set(java.util.Calendar.SECOND, 0)
-                        set(java.util.Calendar.MILLISECOND, 0)
-                    }
-                    val endCal = java.util.Calendar.getInstance().apply {
-                        timeInMillis = endDate
-                        set(java.util.Calendar.HOUR_OF_DAY, 23)
-                        set(java.util.Calendar.MINUTE, 59)
-                        set(java.util.Calendar.SECOND, 59)
-                        set(java.util.Calendar.MILLISECOND, 999)
-                    }
-                    normalizedDate >= startCal.timeInMillis && normalizedDate <= endCal.timeInMillis
-                }
-                // If only start date is set, show from start date onwards
-                startDate != null && endDate == null -> {
-                    val startCal = java.util.Calendar.getInstance().apply {
-                        timeInMillis = startDate
-                        set(java.util.Calendar.HOUR_OF_DAY, 0)
-                        set(java.util.Calendar.MINUTE, 0)
-                        set(java.util.Calendar.SECOND, 0)
-                        set(java.util.Calendar.MILLISECOND, 0)
-                    }
-                    normalizedDate >= startCal.timeInMillis
-                }
-                // If no dates are set, show for today and future dates (ongoing commitments)
-                startDate == null && endDate == null -> {
-                    normalizedDate >= today
-                }
-                else -> false
-            }
-        }
-
-        if (commitmentsOnDate.isEmpty()) {
-            calendarCommitmentsTextView.visibility = View.GONE
-            calendarCommitmentsTextView.text = ""
-        } else {
-            calendarCommitmentsTextView.visibility = View.VISIBLE
-            val commitmentsText = commitmentsOnDate.joinToString("\n") {
-                "• ${it.opportunity.title} (${it.commitment.hoursPerWeek} hrs/week)"
-            }
-            calendarCommitmentsTextView.text = "Commitments on this day:\n$commitmentsText"
-        }
     }
 
     private fun initializeViews(view: View) {
@@ -171,9 +80,8 @@ class DashboardFragment : Fragment() {
         recommendationsLoadingBar = view.findViewById(R.id.recommendationsLoadingBar)
         aiInsightsCard = view.findViewById(R.id.aiInsightsCard)
         refreshRecommendationsButton = view.findViewById(R.id.refreshRecommendationsButton)
-        calendarView = view.findViewById(R.id.calendarView)
-        selectedDateTextView = view.findViewById(R.id.selectedDateTextView)
-        calendarCommitmentsTextView = view.findViewById(R.id.calendarCommitmentsTextView)
+        upcomingDeadlinesScroll = view.findViewById(R.id.upcomingDeadlinesScroll)
+        upcomingDeadlinesContainer = view.findViewById(R.id.upcomingDeadlinesContainer)
     }
 
     private fun setupRecyclerViews() {
@@ -256,11 +164,8 @@ class DashboardFragment : Fragment() {
                     totalHoursTextView.text = totalHours.toString()
                     activeCommitmentsTextView.text = commitments.size.toString()
 
-                    // Store commitments for calendar
-                    allCommitments = commitmentsWithOpportunities
-
-                    // Update calendar display for today
-                    displayCommitmentsForDate(System.currentTimeMillis())
+                    // Load upcoming deadlines carousel
+                    loadUpcomingDeadlines(commitments)
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -392,6 +297,113 @@ class DashboardFragment : Fragment() {
         }
         .sortedByDescending { it.second }
         .map { it.first }
+    }
+
+    private suspend fun loadUpcomingDeadlines(commitments: List<com.example.cac3.data.model.UserCommitment>) {
+        upcomingDeadlinesContainer.removeAllViews()
+
+        val dateFormat = java.text.SimpleDateFormat("MMM dd", java.util.Locale.US)
+        val upcomingDeadlines = mutableListOf<Triple<String, Long, String>>()
+
+        for (commitment in commitments) {
+            val opportunity = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
+            if (opportunity != null) {
+                // Add deadlines
+                if (opportunity.deadline != null && opportunity.deadline!! > System.currentTimeMillis()) {
+                    upcomingDeadlines.add(Triple(
+                        opportunity.title,
+                        opportunity.deadline!!,
+                        opportunity.category.toString()
+                    ))
+                }
+            }
+        }
+
+        // Sort by date (nearest first)
+        upcomingDeadlines.sortBy { it.second }
+
+        // Display horizontal carousel of deadlines
+        upcomingDeadlines.take(10).forEach { (title, deadline, category) ->
+            upcomingDeadlinesContainer.addView(createDeadlineCard(title, dateFormat.format(java.util.Date(deadline)), category, deadline))
+        }
+
+        if (upcomingDeadlines.isEmpty()) {
+            val emptyView = TextView(requireContext()).apply {
+                text = getString(R.string.no_upcoming_deadlines)
+                textSize = 14f
+                setTextColor(android.graphics.Color.parseColor("#757575"))
+                setPadding(48, 48, 48, 48)
+            }
+            upcomingDeadlinesContainer.addView(emptyView)
+        }
+    }
+
+    private fun createDeadlineCard(title: String, date: String, category: String, deadline: Long): View {
+        val card = com.google.android.material.card.MaterialCardView(requireContext()).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                350, // Fixed width for horizontal scrolling
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = 16
+            }
+            radius = 12f
+            cardElevation = 4f
+            setCardBackgroundColor(android.graphics.Color.WHITE)
+        }
+
+        val container = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+
+        // Days until deadline
+        val daysUntil = ((deadline - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).toInt()
+        val urgencyColor = when {
+            daysUntil <= 7 -> "#F44336"
+            daysUntil <= 30 -> "#FF9800"
+            else -> "#4CAF50"
+        }
+
+        val daysText = TextView(requireContext()).apply {
+            text = when {
+                daysUntil == 0 -> getString(R.string.today)
+                daysUntil == 1 -> getString(R.string.tomorrow)
+                daysUntil < 0 -> getString(R.string.overdue)
+                else -> getString(R.string.days_until, daysUntil)
+            }
+            textSize = 24f
+            setTextColor(android.graphics.Color.parseColor(urgencyColor))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+
+        val titleText = TextView(requireContext()).apply {
+            text = title
+            textSize = 16f
+            setTextColor(android.graphics.Color.parseColor("#212121"))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+
+        val dateText = TextView(requireContext()).apply {
+            text = date
+            textSize = 14f
+            setTextColor(android.graphics.Color.parseColor("#757575"))
+        }
+
+        val categoryText = TextView(requireContext()).apply {
+            text = category.replace("_", " ")
+            textSize = 12f
+            setTextColor(android.graphics.Color.parseColor("#9E9E9E"))
+        }
+
+        container.addView(daysText)
+        container.addView(titleText)
+        container.addView(dateText)
+        container.addView(categoryText)
+        card.addView(container)
+
+        return card
     }
 
     override fun onResume() {

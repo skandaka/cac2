@@ -60,6 +60,8 @@ class CommentAdapter(
         private val editButton: android.widget.ImageButton = itemView.findViewById(R.id.editButton)
         private val deleteButton: android.widget.ImageButton = itemView.findViewById(R.id.deleteButton)
 
+        private val prefs = itemView.context.getSharedPreferences("comment_upvotes", android.content.Context.MODE_PRIVATE)
+
         fun bind(comment: Comment) {
             // User name and grade
             userNameTextView.text = comment.userName
@@ -100,7 +102,10 @@ class CommentAdapter(
 
             // Timestamp and upvotes
             timestampTextView.text = getTimeAgo(comment.createdAt)
-            upvoteCountTextView.text = "${comment.upvotes} helpful"
+
+            // Check if user has already marked this as helpful
+            val hasUpvoted = prefs.getBoolean("upvoted_${comment.id}", false)
+            updateUpvoteUI(comment, hasUpvoted)
 
             // Set insight type badge
             insightTypeBadge.text = formatInsightType(comment.insightType)
@@ -112,10 +117,50 @@ class CommentAdapter(
             deleteButton.visibility = if (isOwnComment) View.VISIBLE else View.GONE
 
             // Set click listeners
-            upvoteCountTextView.setOnClickListener { onUpvoteClick(comment) }
+            upvoteCountTextView.setOnClickListener {
+                if (!hasUpvoted) {
+                    // Mark as upvoted
+                    prefs.edit().putBoolean("upvoted_${comment.id}", true).apply()
+                    updateUpvoteUI(comment, true)
+                    onUpvoteClick(comment)
+                } else {
+                    // Already voted
+                    android.widget.Toast.makeText(
+                        itemView.context,
+                        "You already marked this as helpful",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
             replyButton.setOnClickListener { onReplyClick(comment) }
             editButton.setOnClickListener { onEditClick(comment) }
             deleteButton.setOnClickListener { onDeleteClick(comment) }
+        }
+
+        private fun updateUpvoteUI(comment: Comment, hasUpvoted: Boolean) {
+            if (hasUpvoted) {
+                // User has voted - show filled star and count
+                upvoteCountTextView.text = if (comment.upvotes > 0) {
+                    "${comment.upvotes} found helpful"
+                } else {
+                    "1 found helpful"
+                }
+                upvoteCountTextView.setTextColor(itemView.context.getColor(R.color.accent))
+                upvoteCountTextView.setCompoundDrawablesWithIntrinsicBounds(
+                    android.R.drawable.star_big_on, 0, 0, 0
+                )
+            } else {
+                // User hasn't voted - show outline star and prompt
+                upvoteCountTextView.text = if (comment.upvotes > 0) {
+                    "${comment.upvotes} helpful · Mark as Helpful"
+                } else {
+                    "Mark as Helpful"
+                }
+                upvoteCountTextView.setTextColor(itemView.context.getColor(R.color.text_secondary))
+                upvoteCountTextView.setCompoundDrawablesWithIntrinsicBounds(
+                    android.R.drawable.star_big_off, 0, 0, 0
+                )
+            }
         }
 
         private fun formatInsightType(type: InsightType): String {

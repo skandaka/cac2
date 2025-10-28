@@ -36,8 +36,6 @@ class AnalyticsFragment : Fragment() {
     private lateinit var timeBreakdownContainer: LinearLayout
     private lateinit var impactMetricsContainer: LinearLayout
     private lateinit var trendsContainer: LinearLayout
-    private lateinit var upcomingDeadlinesScroll: HorizontalScrollView
-    private lateinit var upcomingDeadlinesContainer: LinearLayout
 
     private lateinit var totalHoursTextView: TextView
     private lateinit var totalImpactTextView: TextView
@@ -66,9 +64,6 @@ class AnalyticsFragment : Fragment() {
         impactMetricsContainer = view.findViewById(R.id.impactMetricsContainer)
         trendsContainer = view.findViewById(R.id.trendsContainer)
 
-        // Initialize upcoming deadlines carousel (will be added to layout later if not present)
-        // These will be available once we update the layout file
-
         totalHoursTextView = view.findViewById(R.id.totalHoursTextView)
         totalImpactTextView = view.findViewById(R.id.totalImpactTextView)
         weekBalanceTextView = view.findViewById(R.id.weekBalanceTextView)
@@ -91,9 +86,6 @@ class AnalyticsFragment : Fragment() {
 
                 // Load opportunity trends
                 loadOpportunityTrends(allOpportunities)
-
-                // Load upcoming deadlines carousel
-                loadUpcomingDeadlines(commitments)
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -260,115 +252,7 @@ class AnalyticsFragment : Fragment() {
         ))
     }
 
-    private suspend fun loadUpcomingDeadlines(commitments: List<com.example.cac3.data.model.UserCommitment>) {
-        // Check if views are initialized
-        if (!::upcomingDeadlinesContainer.isInitialized) return
-
-        upcomingDeadlinesContainer.removeAllViews()
-
-        val dateFormat = SimpleDateFormat("MMM dd", Locale.US)
-        val upcomingDeadlines = mutableListOf<Triple<String, Long, String>>()
-
-        for (commitment in commitments) {
-            val opportunity = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
-            if (opportunity != null) {
-                // Add deadlines
-                if (opportunity.deadline != null && opportunity.deadline!! > System.currentTimeMillis()) {
-                    upcomingDeadlines.add(Triple(
-                        opportunity.title,
-                        opportunity.deadline!!,
-                        opportunity.category.toString()
-                    ))
-                }
-            }
-        }
-
-        // Sort by date (nearest first)
-        upcomingDeadlines.sortBy { it.second }
-
-        // Display horizontal carousel of deadlines
-        upcomingDeadlines.take(10).forEach { (title, deadline, category) ->
-            upcomingDeadlinesContainer.addView(createDeadlineCard(title, dateFormat.format(Date(deadline)), category, deadline))
-        }
-
-        if (upcomingDeadlines.isEmpty()) {
-            val emptyView = TextView(requireContext()).apply {
-                text = "No upcoming deadlines"
-                textSize = 14f
-                setTextColor(Color.parseColor("#757575"))
-                setPadding(48, 48, 48, 48)
-            }
-            upcomingDeadlinesContainer.addView(emptyView)
-        }
-    }
-
-    private fun createDeadlineCard(title: String, date: String, category: String, deadline: Long): View {
-        val card = MaterialCardView(requireContext()).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                350, // Fixed width for horizontal scrolling
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                marginEnd = 16
-            }
-            radius = 12f
-            cardElevation = 4f
-            setCardBackgroundColor(Color.WHITE)
-        }
-
-        val container = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 20, 20, 20)
-        }
-
-        // Days until deadline
-        val daysUntil = ((deadline - System.currentTimeMillis()) / (24 * 60 * 60 * 1000)).toInt()
-        val urgencyColor = when {
-            daysUntil <= 7 -> "#F44336"
-            daysUntil <= 30 -> "#FF9800"
-            else -> "#4CAF50"
-        }
-
-        val daysText = TextView(requireContext()).apply {
-            text = when {
-                daysUntil == 0 -> "TODAY"
-                daysUntil == 1 -> "TOMORROW"
-                daysUntil < 0 -> "OVERDUE"
-                else -> "$daysUntil DAYS"
-            }
-            textSize = 24f
-            setTextColor(Color.parseColor(urgencyColor))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-        }
-
-        val titleText = TextView(requireContext()).apply {
-            text = title
-            textSize = 16f
-            setTextColor(Color.parseColor("#212121"))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            maxLines = 2
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        }
-
-        val dateText = TextView(requireContext()).apply {
-            text = date
-            textSize = 14f
-            setTextColor(Color.parseColor("#757575"))
-        }
-
-        val categoryText = TextView(requireContext()).apply {
-            text = category.replace("_", " ")
-            textSize = 12f
-            setTextColor(Color.parseColor("#9E9E9E"))
-        }
-
-        container.addView(daysText)
-        container.addView(titleText)
-        container.addView(dateText)
-        container.addView(categoryText)
-        card.addView(container)
-
-        return card
-    }
+    // Deadline carousel removed - only shown in Dashboard now
 
     private fun createCategoryCard(category: OpportunityCategory, hours: Int, percentage: Int, color: String): View {
         val card = MaterialCardView(requireContext()).apply {

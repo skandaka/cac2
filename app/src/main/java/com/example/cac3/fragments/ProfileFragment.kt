@@ -349,12 +349,17 @@ class ProfileFragment : Fragment() {
             setText(aiManager.getApiKey())
             setSingleLine()
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                        android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            // Enable pasting
+            isFocusable = true
+            isFocusableInTouchMode = true
+            isLongClickable = true
+            setTextIsSelectable(true)
         }
 
         AlertDialog.Builder(requireContext())
             .setTitle("Configure OpenAI API Key")
-            .setMessage("Enter your OpenAI API key to enable AI-powered features like smart recommendations, application assistant, and success probability calculator.\n\nGet your API key from: https://platform.openai.com/api-keys")
+            .setMessage("Enter your OpenAI API key to enable AI-powered features like smart recommendations, application assistant, and personalized path to success guidance.\n\nGet your API key from: https://platform.openai.com/api-keys")
             .setView(inputEditText)
             .setPositiveButton("Save") { _, _ ->
                 val apiKey = inputEditText.text.toString().trim()
