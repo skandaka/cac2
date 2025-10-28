@@ -44,6 +44,7 @@ class ProfileFragment : Fragment() {
     private lateinit var generateTextButton: MaterialButton
     private lateinit var apiKeyStatusTextView: TextView
     private lateinit var configureAIButton: MaterialButton
+    private lateinit var viewNotesButton: MaterialButton
     private lateinit var logoutButton: MaterialButton
 
     override fun onCreateView(
@@ -67,6 +68,7 @@ class ProfileFragment : Fragment() {
         setupPortfolioButtons()
         updateAIStatus()
         setupConfigureAIButton()
+        setupViewNotesButton()
         setupLogoutButton()
     }
 
@@ -81,6 +83,7 @@ class ProfileFragment : Fragment() {
         generateTextButton = view.findViewById(R.id.generateTextButton)
         apiKeyStatusTextView = view.findViewById(R.id.apiKeyStatusTextView)
         configureAIButton = view.findViewById(R.id.configureAIButton)
+        viewNotesButton = view.findViewById(R.id.viewNotesButton)
         logoutButton = view.findViewById(R.id.logoutButton)
     }
 
@@ -339,6 +342,243 @@ class ProfileFragment : Fragment() {
             showAPIKeyDialog()
         }
     }
+
+    private fun setupViewNotesButton() {
+        viewNotesButton.setOnClickListener {
+            showNotesDialog()
+        }
+    }
+
+    private fun showNotesDialog() {
+        val prefs = requireContext().getSharedPreferences("ai_notes", android.content.Context.MODE_PRIVATE)
+        val allNotes = prefs.all.entries
+            .filter { it.key.startsWith("note_") }
+            .mapNotNull { entry ->
+                val parts = (entry.value as? String)?.split("|")
+                if (parts != null && parts.size >= 4) {
+                    AINote(
+                        id = entry.key,
+                        opportunityTitle = parts[0],
+                        noteType = parts[1],
+                        content = parts[2],
+                        timestamp = parts[3].toLongOrNull() ?: 0L
+                    )
+                } else null
+            }
+            .sortedByDescending { it.timestamp }
+
+        if (allNotes.isEmpty()) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("No Notes Yet")
+                .setMessage("You haven't saved any AI responses yet. Use the AI features and click 'Save to Notes' to build your collection!")
+                .setPositiveButton("OK", null)
+                .show()
+            return
+        }
+
+        // Create notes list view
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(android.R.layout.simple_list_item_1, null)
+
+        val scrollView = android.widget.ScrollView(requireContext())
+        val notesContainer = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 16)
+        }
+
+        // Header
+        val headerText = android.widget.TextView(requireContext()).apply {
+            text = "📝 My AI Notes (${allNotes.size})"
+            textSize = 18f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(resources.getColor(R.color.text_primary, null))
+            setPadding(0, 0, 0, 16)
+        }
+        notesContainer.addView(headerText)
+
+        // Display each note
+        allNotes.forEach { note ->
+            val noteCard = createNoteCard(note, prefs)
+            notesContainer.addView(noteCard)
+        }
+
+        scrollView.addView(notesContainer)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("My AI Notes")
+            .setView(scrollView)
+            .setPositiveButton("Close", null)
+            .setNeutralButton("Clear All") { _, _ ->
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Clear All Notes?")
+                    .setMessage("This will permanently delete all ${allNotes.size} saved notes. This cannot be undone.")
+                    .setPositiveButton("Delete All") { _, _ ->
+                        prefs.edit().clear().apply()
+                        Toast.makeText(requireContext(), "All notes deleted", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+            .show()
+    }
+
+    private fun createNoteCard(note: AINote, prefs: android.content.SharedPreferences): View {
+        val card = com.google.android.material.card.MaterialCardView(requireContext()).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, 16)
+            }
+            radius = 12f
+            cardElevation = 2f
+            setCardBackgroundColor(resources.getColor(R.color.surface, null))
+        }
+
+        val container = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(16, 16, 16, 16)
+        }
+
+        // Note type badge
+        val typeBadge = android.widget.TextView(requireContext()).apply {
+            text = note.noteType
+            textSize = 10f
+            setTextColor(android.graphics.Color.WHITE)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(resources.getColor(R.color.accent, null))
+                cornerRadius = 12f
+            }
+            setPadding(12, 4, 12, 4)
+        }
+        container.addView(typeBadge)
+
+        // Opportunity title
+        val oppTitle = android.widget.TextView(requireContext()).apply {
+            text = note.opportunityTitle
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(resources.getColor(R.color.text_primary, null))
+            setPadding(0, 8, 0, 4)
+        }
+        container.addView(oppTitle)
+
+        // Timestamp
+        val timestamp = android.widget.TextView(requireContext()).apply {
+            text = formatTimestamp(note.timestamp)
+            textSize = 11f
+            setTextColor(resources.getColor(R.color.text_hint, null))
+            setPadding(0, 0, 0, 8)
+        }
+        container.addView(timestamp)
+
+        // Content preview (first 150 chars)
+        val contentPreview = note.content.take(150) + if (note.content.length > 150) "..." else ""
+        val content = android.widget.TextView(requireContext()).apply {
+            text = contentPreview
+            textSize = 13f
+            setTextColor(resources.getColor(R.color.text_secondary, null))
+            maxLines = 3
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        container.addView(content)
+
+        // Action buttons
+        val buttonLayout = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            setPadding(0, 12, 0, 0)
+        }
+
+        val viewButton = com.google.android.material.button.MaterialButton(requireContext()).apply {
+            text = "View Full"
+            textSize = 12f
+            layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener {
+                showFullNoteDialog(note)
+            }
+        }
+        buttonLayout.addView(viewButton)
+
+        val deleteButton = com.google.android.material.button.MaterialButton(requireContext()).apply {
+            text = "Delete"
+            textSize = 12f
+            setTextColor(resources.getColor(R.color.error, null))
+            layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = 8
+            }
+            setOnClickListener {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Note?")
+                    .setMessage("Delete this note from ${note.opportunityTitle}?")
+                    .setPositiveButton("Delete") { _, _ ->
+                        prefs.edit().remove(note.id).apply()
+                        Toast.makeText(requireContext(), "Note deleted", Toast.LENGTH_SHORT).show()
+                        showNotesDialog() // Refresh
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }
+        buttonLayout.addView(deleteButton)
+
+        container.addView(buttonLayout)
+        card.addView(container)
+
+        return card
+    }
+
+    private fun showFullNoteDialog(note: AINote) {
+        val scrollView = android.widget.ScrollView(requireContext())
+        val contentView = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 16)
+        }
+
+        val contentText = android.widget.TextView(requireContext()).apply {
+            text = note.content
+            textSize = 14f
+            setTextColor(resources.getColor(R.color.text_primary, null))
+        }
+        contentView.addView(contentText)
+
+        scrollView.addView(contentView)
+        val maxHeightValue = (resources.displayMetrics.heightPixels * 0.7).toInt()
+        scrollView.layoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            maxHeightValue
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("${note.noteType} - ${note.opportunityTitle}")
+            .setView(scrollView)
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    private fun formatTimestamp(timestamp: Long): String {
+        val now = System.currentTimeMillis()
+        val diff = now - timestamp
+        val hours = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(diff)
+        val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+
+        return when {
+            hours < 1 -> "Just now"
+            hours < 24 -> "$hours hours ago"
+            days < 7 -> "$days days ago"
+            else -> {
+                val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+                sdf.format(java.util.Date(timestamp))
+            }
+        }
+    }
+
+    data class AINote(
+        val id: String,
+        val opportunityTitle: String,
+        val noteType: String,
+        val content: String,
+        val timestamp: Long
+    )
 
     private fun showAPIKeyDialog() {
         val dialogView = LayoutInflater.from(requireContext())

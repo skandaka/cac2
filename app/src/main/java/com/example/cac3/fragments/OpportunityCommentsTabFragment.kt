@@ -494,21 +494,27 @@ class OpportunityCommentsTabFragment : Fragment() {
         val commentInput = dialogView.findViewById<EditText>(R.id.commentInput)
 
         // Hide unnecessary fields for replies
-        val insightTypeSpinner = dialogView.findViewById<android.widget.Spinner>(R.id.insightTypeSpinner)
-        val ratingBar = dialogView.findViewById<android.widget.RatingBar>(R.id.ratingBar)
-        val ratingText = dialogView.findViewById<android.widget.TextView>(R.id.ratingText)
-        val resourceLinksInput = dialogView.findViewById<EditText>(R.id.resourceLinksInput)
-        val verificationCheckbox = dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.verificationCheckbox)
+        // Hide insight type section
+        dialogView.findViewById<View>(R.id.insightTypeSpinner)?.visibility = View.GONE
+        dialogView.findViewById<android.widget.TextView>(R.id.insightTypeSpinner)?.parent?.let {
+            (it as? View)?.visibility = View.GONE
+        }
 
-        // Hide rating, resources, and verification for replies
-        insightTypeSpinner.visibility = View.GONE
-        dialogView.findViewById<View>(R.id.ratingBar)?.parent?.let { parent ->
-            if (parent is View) parent.visibility = View.GONE
+        // Hide rating section - hide the whole LinearLayout containing RatingBar
+        dialogView.findViewById<android.widget.RatingBar>(R.id.ratingBar)?.parent?.let {
+            (it as? View)?.visibility = View.GONE
         }
-        resourceLinksInput.parent?.let { parent ->
-            if (parent is View) parent.visibility = View.GONE
+
+        // Hide resource links section - hide the TextInputLayout
+        dialogView.findViewById<android.widget.EditText>(R.id.resourceLinksInput)?.parent?.let {
+            (it as? View)?.visibility = View.GONE
         }
-        verificationCheckbox.visibility = View.GONE
+
+        // Hide verification checkbox
+        dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.verificationCheckbox)?.visibility = View.GONE
+
+        // Set hint for reply
+        commentInput.hint = "Write your reply..."
 
         AlertDialog.Builder(requireContext())
             .setTitle("Reply to ${parentComment.userName}")

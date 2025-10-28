@@ -73,7 +73,9 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="16dp"
             android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingBottom="8dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
 
             <RatingBar
                 android:id="@+id/ratingBar"
@@ -84,6 +86,7 @@
                 android:rating="0"
                 style="?android:attr/ratingBarStyle"
                 android:isIndicator="false"
+                android:layout_marginStart="8dp"
                 android:layout_marginEnd="16dp"/>
 
             <TextView

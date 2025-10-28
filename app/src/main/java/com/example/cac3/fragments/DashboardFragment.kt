@@ -303,31 +303,34 @@ class DashboardFragment : Fragment() {
         upcomingDeadlinesContainer.removeAllViews()
 
         val dateFormat = java.text.SimpleDateFormat("MMM dd", java.util.Locale.US)
-        val upcomingDeadlines = mutableListOf<Triple<String, Long, String>>()
+        // Use a map to track unique deadlines by opportunity ID to prevent duplicates
+        val uniqueDeadlines = mutableMapOf<Long, Triple<String, Long, String>>()
 
         for (commitment in commitments) {
             val opportunity = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
             if (opportunity != null) {
-                // Add deadlines
-                if (opportunity.deadline != null && opportunity.deadline!! > System.currentTimeMillis()) {
-                    upcomingDeadlines.add(Triple(
+                // Add deadlines only if not already added for this opportunity
+                if (opportunity.deadline != null &&
+                    opportunity.deadline!! > System.currentTimeMillis() &&
+                    !uniqueDeadlines.containsKey(opportunity.id)) {
+                    uniqueDeadlines[opportunity.id] = Triple(
                         opportunity.title,
                         opportunity.deadline!!,
                         opportunity.category.toString()
-                    ))
+                    )
                 }
             }
         }
 
         // Sort by date (nearest first)
-        upcomingDeadlines.sortBy { it.second }
+        val sortedDeadlines = uniqueDeadlines.values.sortedBy { it.second }
 
         // Display horizontal carousel of deadlines
-        upcomingDeadlines.take(10).forEach { (title, deadline, category) ->
+        sortedDeadlines.take(10).forEach { (title, deadline, category) ->
             upcomingDeadlinesContainer.addView(createDeadlineCard(title, dateFormat.format(java.util.Date(deadline)), category, deadline))
         }
 
-        if (upcomingDeadlines.isEmpty()) {
+        if (sortedDeadlines.isEmpty()) {
             val emptyView = TextView(requireContext()).apply {
                 text = getString(R.string.no_upcoming_deadlines)
                 textSize = 14f

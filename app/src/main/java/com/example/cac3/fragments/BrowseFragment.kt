@@ -344,6 +344,9 @@ class BrowseFragment : Fragment() {
                 else -> "popular"
             }
 
+            // Sync main category chips with dialog selection
+            syncMainCategoryChips()
+
             filterOpportunities()
             dialog.dismiss()
         }
@@ -358,11 +361,30 @@ class BrowseFragment : Fragment() {
             minComments = 0
             minStudents = 0
             sortBy = "popular"
+
+            // Sync main category chips to show "All" selected
+            syncMainCategoryChips()
+
             filterOpportunities()
             dialog.dismiss()
         }
 
         dialog.show()
+    }
+
+    private fun syncMainCategoryChips() {
+        // Update the main category chip group to match currentCategory
+        when (currentCategory) {
+            OpportunityCategory.COMPETITION -> this.categoryChipGroup.check(R.id.chipCompetition)
+            OpportunityCategory.EMPLOYMENT -> this.categoryChipGroup.check(R.id.chipEmployment)
+            OpportunityCategory.VOLUNTEERING -> this.categoryChipGroup.check(R.id.chipVolunteering)
+            OpportunityCategory.CLUB -> this.categoryChipGroup.check(R.id.chipClub)
+            OpportunityCategory.COLLEGE -> this.categoryChipGroup.check(R.id.chipCollege)
+            OpportunityCategory.SUMMER_PROGRAM -> this.categoryChipGroup.check(R.id.chipSummer)
+            OpportunityCategory.HONOR_SOCIETY, OpportunityCategory.TEST_PREP,
+            OpportunityCategory.INTERNSHIP, OpportunityCategory.OTHER -> this.categoryChipGroup.clearCheck()
+            null -> this.categoryChipGroup.clearCheck() // No category selected (All)
+        }
     }
 
     override fun onResume() {

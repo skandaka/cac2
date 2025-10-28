@@ -477,10 +477,15 @@ class OpportunityDetailActivity : AppCompatActivity() {
 
         val finalContent = contentBuilder.toString()
 
-        // Wrap in ScrollView
-        val scrollView = android.widget.ScrollView(this).apply {
-            addView(contentView)
-        }
+        // Wrap in ScrollView with max height
+        val scrollView = android.widget.ScrollView(this)
+        val displayMetrics = resources.displayMetrics
+        val maxHeightValue = (displayMetrics.heightPixels * 0.6).toInt()
+        scrollView.layoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            maxHeightValue
+        )
+        scrollView.addView(contentView)
 
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.ai_guidance_title))
@@ -621,10 +626,15 @@ class OpportunityDetailActivity : AppCompatActivity() {
         }
         contentView.addView(responseText)
 
-        // Wrap in ScrollView
-        val scrollView = android.widget.ScrollView(this).apply {
-            addView(contentView)
-        }
+        // Wrap in ScrollView with max height
+        val scrollView = android.widget.ScrollView(this)
+        val displayMetrics = resources.displayMetrics
+        val maxHeightValue = (displayMetrics.heightPixels * 0.6).toInt()
+        scrollView.layoutParams = android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            maxHeightValue
+        )
+        scrollView.addView(contentView)
 
         AlertDialog.Builder(this)
             .setTitle("AI Application Assistance")
