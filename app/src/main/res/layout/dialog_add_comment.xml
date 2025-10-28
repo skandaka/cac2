@@ -21,6 +21,7 @@
 
         <!-- Insight Type Selector -->
         <TextView
+            android:id="@+id/insightTypeLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="What type of insight are you sharing?"
@@ -58,6 +59,7 @@
 
         <!-- Rating Section -->
         <TextView
+            android:id="@+id/ratingLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Rate this opportunity (optional)"
@@ -67,6 +69,7 @@
             android:layout_marginBottom="4dp"/>
 
         <LinearLayout
+            android:id="@+id/ratingRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -86,7 +89,7 @@
                 android:rating="0"
                 style="?android:attr/ratingBarStyle"
                 android:isIndicator="false"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="0dp"
                 android:layout_marginEnd="16dp"/>
 
             <TextView
@@ -101,6 +104,7 @@
 
         <!-- Resource Links Input -->
         <TextView
+            android:id="@+id/resourceLinksLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Add helpful resource links (optional)"

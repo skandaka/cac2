@@ -33,6 +33,7 @@ class DashboardFragment : Fragment() {
     private lateinit var aiManager: AIManager
 
     private lateinit var welcomeTextView: TextView
+    private var deadlinesLoaded = false
     private lateinit var totalHoursTextView: TextView
     private lateinit var activeCommitmentsTextView: TextView
     private lateinit var commitmentsRecyclerView: RecyclerView
@@ -128,8 +129,10 @@ class DashboardFragment : Fragment() {
     }
 
     private fun loadCommitments(userId: Long) {
-        // Observe commitments LiveData
-        database.userDao().getUserCommitments(userId).observe(viewLifecycleOwner) { commitments ->
+        // Ensure we do not attach multiple observers on repeated calls
+        val liveData = database.userDao().getUserCommitments(userId)
+        liveData.removeObservers(viewLifecycleOwner)
+        liveData.observe(viewLifecycleOwner) { commitments ->
             if (commitments.isEmpty()) {
                 noCommitmentsTextView.visibility = View.VISIBLE
                 commitmentsRecyclerView.visibility = View.GONE
@@ -164,8 +167,11 @@ class DashboardFragment : Fragment() {
                     totalHoursTextView.text = totalHours.toString()
                     activeCommitmentsTextView.text = commitments.size.toString()
 
-                    // Load upcoming deadlines carousel
-                    loadUpcomingDeadlines(commitments)
+                    // Load upcoming deadlines carousel once per lifecycle
+                    if (!deadlinesLoaded) {
+                        loadUpcomingDeadlines(commitments)
+                        deadlinesLoaded = true
+                    }
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -300,19 +306,16 @@ class DashboardFragment : Fragment() {
     }
 
     private suspend fun loadUpcomingDeadlines(commitments: List<com.example.cac3.data.model.UserCommitment>) {
-        upcomingDeadlinesContainer.removeAllViews()
-
         val dateFormat = java.text.SimpleDateFormat("MMM dd", java.util.Locale.US)
-        // Use a map to track unique deadlines by opportunity ID to prevent duplicates
         val uniqueDeadlines = mutableMapOf<Long, Triple<String, Long, String>>()
 
         for (commitment in commitments) {
             val opportunity = database.opportunityDao().getOpportunityByIdSync(commitment.opportunityId)
             if (opportunity != null) {
-                // Add deadlines only if not already added for this opportunity
                 if (opportunity.deadline != null &&
                     opportunity.deadline!! > System.currentTimeMillis() &&
-                    !uniqueDeadlines.containsKey(opportunity.id)) {
+                    !uniqueDeadlines.containsKey(opportunity.id)
+                ) {
                     uniqueDeadlines[opportunity.id] = Triple(
                         opportunity.title,
                         opportunity.deadline!!,
@@ -322,22 +325,27 @@ class DashboardFragment : Fragment() {
             }
         }
 
-        // Sort by date (nearest first)
-        val sortedDeadlines = uniqueDeadlines.values.sortedBy { it.second }
+        val sortedDeadlines = uniqueDeadlines.values.sortedBy { it.second }.take(10)
 
-        // Display horizontal carousel of deadlines
-        sortedDeadlines.take(10).forEach { (title, deadline, category) ->
-            upcomingDeadlinesContainer.addView(createDeadlineCard(title, dateFormat.format(java.util.Date(deadline)), category, deadline))
-        }
+        // Perform all UI changes together on the main thread to avoid interleaving from multiple callers
+        requireActivity().runOnUiThread {
+            upcomingDeadlinesContainer.removeAllViews()
 
-        if (sortedDeadlines.isEmpty()) {
-            val emptyView = TextView(requireContext()).apply {
-                text = getString(R.string.no_upcoming_deadlines)
-                textSize = 14f
-                setTextColor(android.graphics.Color.parseColor("#757575"))
-                setPadding(48, 48, 48, 48)
+            if (sortedDeadlines.isEmpty()) {
+                val emptyView = TextView(requireContext()).apply {
+                    text = getString(R.string.no_upcoming_deadlines)
+                    textSize = 14f
+                    setTextColor(android.graphics.Color.parseColor("#757575"))
+                    setPadding(48, 48, 48, 48)
+                }
+                upcomingDeadlinesContainer.addView(emptyView)
+            } else {
+                sortedDeadlines.forEach { (title, deadline, category) ->
+                    upcomingDeadlinesContainer.addView(
+                        createDeadlineCard(title, dateFormat.format(java.util.Date(deadline)), category, deadline)
+                    )
+                }
             }
-            upcomingDeadlinesContainer.addView(emptyView)
         }
     }
 
@@ -411,7 +419,7 @@ class DashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Reload data when fragment becomes visible
+        // Do not forcibly reset; dashboard data will refresh via LiveData without duplicating observers
         loadDashboardData()
     }
 }

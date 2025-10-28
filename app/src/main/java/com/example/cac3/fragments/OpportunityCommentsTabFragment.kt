@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -489,31 +490,26 @@ class OpportunityCommentsTabFragment : Fragment() {
             return
         }
 
-        // Create a simple text input dialog for replies
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_comment, null)
         val commentInput = dialogView.findViewById<EditText>(R.id.commentInput)
 
-        // Hide unnecessary fields for replies
-        // Hide insight type section
+        // Hide fields not needed for a simple reply (hide labels and controls)
+        dialogView.findViewById<View>(R.id.insightTypeLabel)?.visibility = View.GONE
         dialogView.findViewById<View>(R.id.insightTypeSpinner)?.visibility = View.GONE
-        dialogView.findViewById<android.widget.TextView>(R.id.insightTypeSpinner)?.parent?.let {
-            (it as? View)?.visibility = View.GONE
+
+        dialogView.findViewById<View>(R.id.ratingLabel)?.visibility = View.GONE
+        dialogView.findViewById<View>(R.id.ratingRow)?.visibility = View.GONE
+
+        dialogView.findViewById<View>(R.id.resourceLinksLabel)?.visibility = View.GONE
+        // Hide the TextInputLayout that wraps resourceLinksInput
+        dialogView.findViewById<View>(R.id.resourceLinksInput)?.parent?.let { parent ->
+            if (parent is com.google.android.material.textfield.TextInputLayout) {
+                parent.visibility = View.GONE
+            }
         }
 
-        // Hide rating section - hide the whole LinearLayout containing RatingBar
-        dialogView.findViewById<android.widget.RatingBar>(R.id.ratingBar)?.parent?.let {
-            (it as? View)?.visibility = View.GONE
-        }
-
-        // Hide resource links section - hide the TextInputLayout
-        dialogView.findViewById<android.widget.EditText>(R.id.resourceLinksInput)?.parent?.let {
-            (it as? View)?.visibility = View.GONE
-        }
-
-        // Hide verification checkbox
         dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.verificationCheckbox)?.visibility = View.GONE
 
-        // Set hint for reply
         commentInput.hint = "Write your reply..."
 
         AlertDialog.Builder(requireContext())

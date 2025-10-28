@@ -74,12 +74,14 @@
         <!-- Rating Section -->
         <LinearLayout
             android:id="@+id/ratingLayout"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:visibility="gone">
+            android:visibility="gone"
+            android:paddingStart="6dp"
+            android:clipToPadding="false">
 
             <RatingBar
                 android:id="@+id/commentRatingBar"

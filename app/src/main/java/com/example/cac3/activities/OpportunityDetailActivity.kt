@@ -480,7 +480,7 @@ class OpportunityDetailActivity : AppCompatActivity() {
         // Wrap in ScrollView with max height
         val scrollView = android.widget.ScrollView(this)
         val displayMetrics = resources.displayMetrics
-        val maxHeightValue = (displayMetrics.heightPixels * 0.6).toInt()
+        val maxHeightValue = (displayMetrics.heightPixels * 0.45).toInt()
         scrollView.layoutParams = android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             maxHeightValue
@@ -626,14 +626,16 @@ class OpportunityDetailActivity : AppCompatActivity() {
         }
         contentView.addView(responseText)
 
-        // Wrap in ScrollView with max height
+        // Wrap in ScrollView with reduced max height to keep buttons visible
         val scrollView = android.widget.ScrollView(this)
         val displayMetrics = resources.displayMetrics
-        val maxHeightValue = (displayMetrics.heightPixels * 0.6).toInt()
+        // Reduce to 45% of screen height so the three action buttons are always visible
+        val maxHeightValue = (displayMetrics.heightPixels * 0.45).toInt()
         scrollView.layoutParams = android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             maxHeightValue
         )
+        scrollView.isFillViewport = false
         scrollView.addView(contentView)
 
         AlertDialog.Builder(this)
