@@ -29,10 +29,12 @@
                 android:gravity="center">
 
                 <!-- Profile Icon/Avatar -->
-                <View
+                <ImageView
                     android:layout_width="80dp"
                     android:layout_height="80dp"
-                    android:background="@drawable/logo_circle"/>
+                    android:src="@drawable/oppurnet"
+                    android:contentDescription="Profile"
+                    android:scaleType="fitCenter"/>
 
                 <!-- User Name -->
                 <TextView

@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">OpportunityHub</string>
+    <string name="app_name">opportunet</string>
     <string name="app_tagline">Your personalized opportunity tracker</string>
 
     <!-- Authentication -->
-    <string name="welcome">Welcome to OpportunityHub</string>
+    <string name="welcome">Welcome to opportunet</string>
     <string name="login">Log In</string>
     <string name="signup">Sign Up</string>
     <string name="email">Email</string>

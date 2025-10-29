@@ -32,7 +32,7 @@ import kotlinx.coroutines.sync.withLock
         com.example.cac3.data.model.TeamMember::class,
         com.example.cac3.data.model.TeamRequest::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -107,6 +107,12 @@ abstract class AppDatabase : RoomDatabase() {
             opportunityDao.deleteAll()
             val dataPopulator = DataPopulator(database)
             dataPopulator.populateAll()
+
+            // Populate demo data (teams, comments, replies)
+            // Note: Demo data already populated
+            // val demoDataPopulator = DemoDataPopulator(database)
+            // demoDataPopulator.populateDemoData()
         }
     }
 }
+

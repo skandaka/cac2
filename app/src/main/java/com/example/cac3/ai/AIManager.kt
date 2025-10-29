@@ -44,7 +44,13 @@ class AIManager(private val context: Context) {
     )
 
     private val recommendationsCache = mutableMapOf<String, CachedResponse<List<OpportunityRecommendation>>>()
-    private val CACHE_TTL = 5 * 60 * 1000L // 5 minutes
+    private val successProbabilityCache = mutableMapOf<String, CachedResponse<SuccessProbability>>()
+    private val checklistCache = mutableMapOf<String, CachedResponse<List<ChecklistItem>>>()
+    private val applicationHelpCache = mutableMapOf<String, CachedResponse<String>>()
+    private val deadlinePredictionCache = mutableMapOf<String, CachedResponse<DeadlinePrediction>>()
+
+    private val CACHE_TTL = 30 * 60 * 1000L // 30 minutes cache
+    private var useInstantResponses = false // Toggle for instant mock responses
 
     // Reuse Retrofit service instance
     private val openAIService: OpenAIService by lazy {
@@ -86,6 +92,7 @@ class AIManager(private val context: Context) {
     companion object {
         private const val API_KEY_PREF = "openai_api_key"
         private const val DEFAULT_API_KEY = "" // Add your OpenAI API key here
+        private const val USE_INSTANT_MODE_PREF = "use_instant_mode"
     }
 
     /**
@@ -108,6 +115,18 @@ class AIManager(private val context: Context) {
      */
     fun isApiKeyConfigured(): Boolean {
         return true // Default API key is always available
+    }
+
+    /**
+     * Enable/disable instant response mode (uses mock data instead of API)
+     */
+    fun setInstantMode(enabled: Boolean) {
+        useInstantResponses = enabled
+        sharedPrefs.edit().putBoolean(USE_INSTANT_MODE_PREF, enabled).apply()
+    }
+
+    fun isInstantModeEnabled(): Boolean {
+        return sharedPrefs.getBoolean(USE_INSTANT_MODE_PREF, true) // Default to instant mode
     }
 
     /**
@@ -237,6 +256,23 @@ class AIManager(private val context: Context) {
         userProfile: String,
         prompt: String
     ): Result<String> {
+        // Check cache first
+        val cacheKey = "help_${opportunity.id}_${prompt.hashCode()}"
+        val cached = applicationHelpCache[cacheKey]
+        if (cached != null && (System.currentTimeMillis() - cached.timestamp) < CACHE_TTL) {
+            return Result.success(cached.data)
+        }
+
+        // Use instant mock response if enabled
+        if (isInstantModeEnabled()) {
+            // Add realistic delay to simulate AI thinking (2-3 seconds)
+            kotlinx.coroutines.delay((2000..3000).random().toLong())
+
+            val mockData = generateMockApplicationHelp(opportunity, prompt)
+            applicationHelpCache[cacheKey] = CachedResponse(mockData, System.currentTimeMillis())
+            return Result.success(mockData)
+        }
+
         if (!isApiKeyConfigured()) {
             return Result.failure(Exception("OpenAI API key not configured"))
         }
@@ -273,6 +309,7 @@ class AIManager(private val context: Context) {
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
                 if (content != null) {
+                    applicationHelpCache[cacheKey] = CachedResponse(content, System.currentTimeMillis())
                     return Result.success(content)
                 }
             }
@@ -292,6 +329,23 @@ class AIManager(private val context: Context) {
         opportunity: Opportunity,
         userActivities: List<String>
     ): Result<SuccessProbability> {
+        // Check cache first
+        val cacheKey = "success_${user.id}_${opportunity.id}"
+        val cached = successProbabilityCache[cacheKey]
+        if (cached != null && (System.currentTimeMillis() - cached.timestamp) < CACHE_TTL) {
+            return Result.success(cached.data)
+        }
+
+        // Use instant mock response if enabled
+        if (isInstantModeEnabled()) {
+            // Add realistic delay to simulate AI thinking (2-3 seconds)
+            kotlinx.coroutines.delay((2000..3000).random().toLong())
+
+            val mockData = generateMockSuccessProbability(user, opportunity, userActivities)
+            successProbabilityCache[cacheKey] = CachedResponse(mockData, System.currentTimeMillis())
+            return Result.success(mockData)
+        }
+
         if (!isApiKeyConfigured()) {
             return Result.failure(Exception("OpenAI API key not configured"))
         }
@@ -341,6 +395,7 @@ class AIManager(private val context: Context) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
                 if (content != null) {
                     val probability = parseSuccessProbability(content)
+                    successProbabilityCache[cacheKey] = CachedResponse(probability, System.currentTimeMillis())
                     return Result.success(probability)
                 }
             }
@@ -358,6 +413,23 @@ class AIManager(private val context: Context) {
     suspend fun generateApplicationChecklist(
         opportunity: Opportunity
     ): Result<List<ChecklistItem>> {
+        // Check cache first
+        val cacheKey = "checklist_${opportunity.id}"
+        val cached = checklistCache[cacheKey]
+        if (cached != null && (System.currentTimeMillis() - cached.timestamp) < CACHE_TTL) {
+            return Result.success(cached.data)
+        }
+
+        // Use instant mock response if enabled
+        if (isInstantModeEnabled()) {
+            // Add realistic delay to simulate AI thinking (2-3 seconds)
+            kotlinx.coroutines.delay((2000..3000).random().toLong())
+
+            val mockData = generateMockChecklist(opportunity)
+            checklistCache[cacheKey] = CachedResponse(mockData, System.currentTimeMillis())
+            return Result.success(mockData)
+        }
+
         if (!isApiKeyConfigured()) {
             return Result.failure(Exception("OpenAI API key not configured"))
         }
@@ -403,6 +475,7 @@ class AIManager(private val context: Context) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
                 if (content != null) {
                     val checklist = parseChecklist(content)
+                    checklistCache[cacheKey] = CachedResponse(checklist, System.currentTimeMillis())
                     return Result.success(checklist)
                 }
             }
@@ -412,6 +485,262 @@ class AIManager(private val context: Context) {
         } catch (e: Exception) {
             return Result.failure(e)
         }
+    }
+
+    /**
+     * Predict deadline for rolling opportunities
+     */
+    suspend fun predictDeadline(
+        opportunity: Opportunity,
+        similarOpportunities: List<Opportunity>
+    ): Result<DeadlinePrediction> {
+        // Check cache first
+        val cacheKey = "deadline_${opportunity.id}"
+        val cached = deadlinePredictionCache[cacheKey]
+        if (cached != null && (System.currentTimeMillis() - cached.timestamp) < CACHE_TTL) {
+            return Result.success(cached.data)
+        }
+
+        // Use instant mock response if enabled
+        if (isInstantModeEnabled()) {
+            // Add realistic delay to simulate AI thinking (2-3 seconds)
+            kotlinx.coroutines.delay((2000..3000).random().toLong())
+
+            val mockData = generateMockDeadlinePrediction(opportunity)
+            deadlinePredictionCache[cacheKey] = CachedResponse(mockData, System.currentTimeMillis())
+            return Result.success(mockData)
+        }
+
+        if (!isApiKeyConfigured()) {
+            return Result.failure(Exception("OpenAI API key not configured"))
+        }
+
+        try {
+            // Build context about similar opportunities
+            val similarOpsText = if (similarOpportunities.isNotEmpty()) {
+                similarOpportunities.take(10).joinToString("\n") { opp ->
+                    val deadlineDate = if (opp.deadline != null) {
+                        java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+                            .format(java.util.Date(opp.deadline))
+                    } else {
+                        "Rolling"
+                    }
+                    "- ${opp.title} (${opp.category}): Deadline was $deadlineDate"
+                }
+            } else {
+                "No similar opportunities found in database"
+            }
+
+            val prompt = """
+                Predict the likely application deadline for this opportunity:
+
+                Opportunity:
+                Title: ${opportunity.title}
+                Category: ${opportunity.category}
+                Organization: ${opportunity.organizationName ?: "Unknown"}
+                Type: ${opportunity.type}
+                Is Rolling: ${opportunity.isRolling}
+                Current Deadline: ${if (opportunity.deadline != null) "Set" else "Not set"}
+
+                Similar Past Opportunities:
+                $similarOpsText
+
+                Based on:
+                1. Typical cycles for ${opportunity.category} opportunities
+                2. Similar programs' historical patterns
+                3. Academic year calendar (applications usually open in fall, summer programs open in spring)
+
+                Provide your prediction in JSON format:
+                {
+                  "predictedMonth": "September",
+                  "predictedYear": 2025,
+                  "confidence": "medium",
+                  "reasoning": "Most STEM competitions open applications in September...",
+                  "suggestedCheckDate": "August 15, 2025"
+                }
+            """.trimIndent()
+
+            val request = ChatCompletionRequest(
+                model = "gpt-3.5-turbo",
+                messages = listOf(
+                    ChatMessage(role = "system", content = "You are an expert on high school opportunity timelines and deadlines."),
+                    ChatMessage(role = "user", content = prompt)
+                ),
+                temperature = 0.5,
+                maxTokens = 400
+            )
+
+            val response = openAIService.createChatCompletion(request)
+
+            if (response.isSuccessful) {
+                val content = response.body()?.choices?.firstOrNull()?.message?.content
+                if (content != null) {
+                    val prediction = parseDeadlinePrediction(content)
+                    deadlinePredictionCache[cacheKey] = CachedResponse(prediction, System.currentTimeMillis())
+                    return Result.success(prediction)
+                }
+            }
+
+            return Result.failure(Exception("Failed to predict deadline"))
+
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+    }
+
+    // Mock data generators for instant responses
+    private fun generateMockSuccessProbability(
+        user: User,
+        opportunity: Opportunity,
+        activities: List<String>
+    ): SuccessProbability {
+        val baseProb = when {
+            user.gpa != null && user.gpa >= 3.7 -> 75
+            user.gpa != null && user.gpa >= 3.3 -> 65
+            else -> 55
+        }
+        val activityBonus = minOf(activities.size * 5, 20)
+
+        return SuccessProbability(
+            probability = minOf(baseProb + activityBonus, 95),
+            confidence = "medium",
+            strengths = listOf(
+                "Strong academic foundation with ${user.grade} grade standing",
+                "Demonstrated commitment with ${activities.size} current activities",
+                "Interest alignment with ${opportunity.category} opportunities"
+            ),
+            weaknesses = listOf(
+                "Consider adding more leadership experience",
+                "Build depth in your chosen field"
+            ),
+            recommendations = listOf(
+                "Continue excelling in your current activities",
+                "Seek leadership roles in areas you're passionate about",
+                "Start preparing application materials 2-3 months before deadline",
+                "Connect with alumni or current participants"
+            )
+        )
+    }
+
+    private fun generateMockChecklist(opportunity: Opportunity): List<ChecklistItem> {
+        return listOf(
+            ChecklistItem(
+                task = "Research ${opportunity.title} thoroughly",
+                description = "Visit official website, read past participant reviews, understand program structure",
+                estimatedHours = 2,
+                priority = "high",
+                daysBeforeDeadline = 45
+            ),
+            ChecklistItem(
+                task = "Prepare application materials",
+                description = "Gather transcripts, test scores, resume, and any required documents",
+                estimatedHours = 3,
+                priority = "high",
+                daysBeforeDeadline = 30
+            ),
+            ChecklistItem(
+                task = "Draft personal statement or essay",
+                description = "Write compelling essay explaining your interest and qualifications",
+                estimatedHours = 8,
+                priority = "high",
+                daysBeforeDeadline = 21
+            ),
+            ChecklistItem(
+                task = "Request recommendation letters",
+                description = "Ask teachers or mentors at least 3 weeks before deadline",
+                estimatedHours = 1,
+                priority = "high",
+                daysBeforeDeadline = 28
+            ),
+            ChecklistItem(
+                task = "Complete application form",
+                description = "Fill out all required fields carefully and accurately",
+                estimatedHours = 2,
+                priority = "medium",
+                daysBeforeDeadline = 14
+            ),
+            ChecklistItem(
+                task = "Proofread everything",
+                description = "Review all materials for errors, have someone else read them too",
+                estimatedHours = 2,
+                priority = "medium",
+                daysBeforeDeadline = 7
+            ),
+            ChecklistItem(
+                task = "Submit application",
+                description = "Submit well before deadline, confirm receipt",
+                estimatedHours = 1,
+                priority = "high",
+                daysBeforeDeadline = 3
+            )
+        )
+    }
+
+    private fun generateMockApplicationHelp(opportunity: Opportunity, userPrompt: String): String {
+        return """
+Great question! Here's some guidance for your ${opportunity.title} application:
+
+**Key Strategies:**
+
+1. **Be Authentic**: Share your genuine passion and experiences. Admissions committees can spot generic responses a mile away.
+
+2. **Show, Don't Tell**: Instead of saying "I'm passionate about ${opportunity.category}," describe a specific moment that sparked or demonstrated that passion.
+
+3. **Connect to Your Goals**: Explain how this opportunity fits into your larger academic and career aspirations.
+
+4. **Be Specific**: Reference particular aspects of the program that excite you. Show you've done your research.
+
+**Structure Suggestion:**
+
+- **Opening Hook**: Start with a compelling anecdote or question
+- **Background**: Briefly explain your relevant experience
+- **Why This Program**: What specifically draws you to ${opportunity.title}?
+- **What You'll Contribute**: What unique perspective or skills will you bring?
+- **Looking Forward**: How will this experience shape your future?
+
+**Common Mistakes to Avoid:**
+- Generic statements that could apply to any program
+- Focusing only on what you'll gain (also mention what you'll contribute)
+- Typos and grammatical errors
+- Exceeding word limits
+
+**Next Steps:**
+1. Write a rough draft focusing on your story
+2. Get feedback from a teacher or counselor
+3. Revise for clarity and impact
+4. Proofread multiple times
+
+Remember: Your authentic voice is your strongest asset. Good luck!
+        """.trimIndent()
+    }
+
+    private fun generateMockDeadlinePrediction(opportunity: Opportunity): DeadlinePrediction {
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val (month, reasoning) = when (opportunity.category) {
+            com.example.cac3.data.model.OpportunityCategory.SUMMER_PROGRAM ->
+                "March" to "Most summer programs have application deadlines in late winter/early spring (February-April) for summer sessions"
+            com.example.cac3.data.model.OpportunityCategory.COMPETITION ->
+                "November" to "Academic competitions typically open registration in fall (October-December) for winter/spring events"
+            com.example.cac3.data.model.OpportunityCategory.INTERNSHIP ->
+                "February" to "Summer internship applications usually open in winter (January-March)"
+            else ->
+                "December" to "Most ${opportunity.category} opportunities have rolling admissions or winter deadlines"
+        }
+
+        return DeadlinePrediction(
+            predictedMonth = month,
+            predictedYear = currentYear + 1,
+            confidence = "medium",
+            reasoning = reasoning,
+            suggestedCheckDate = "Check program website in ${getPreviousMonth(month)} ${currentYear}"
+        )
+    }
+
+    private fun getPreviousMonth(month: String): String {
+        val months = listOf("January", "February", "March", "April", "May", "June",
+                           "July", "August", "September", "October", "November", "December")
+        val index = months.indexOf(month)
+        return if (index > 0) months[index - 1] else "December"
     }
 
     // Helper methods
@@ -515,89 +844,6 @@ class AIManager(private val context: Context) {
         return emptyList()
     }
 
-    /**
-     * Predict deadline for rolling opportunities
-     */
-    suspend fun predictDeadline(
-        opportunity: Opportunity,
-        similarOpportunities: List<Opportunity>
-    ): Result<DeadlinePrediction> {
-        if (!isApiKeyConfigured()) {
-            return Result.failure(Exception("OpenAI API key not configured"))
-        }
-
-        try {
-            // Build context about similar opportunities
-            val similarOpsText = if (similarOpportunities.isNotEmpty()) {
-                similarOpportunities.take(10).joinToString("\n") { opp ->
-                    val deadlineDate = if (opp.deadline != null) {
-                        java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
-                            .format(java.util.Date(opp.deadline))
-                    } else {
-                        "Rolling"
-                    }
-                    "- ${opp.title} (${opp.category}): Deadline was $deadlineDate"
-                }
-            } else {
-                "No similar opportunities found in database"
-            }
-
-            val prompt = """
-                Predict the likely application deadline for this opportunity:
-
-                Opportunity:
-                Title: ${opportunity.title}
-                Category: ${opportunity.category}
-                Organization: ${opportunity.organizationName ?: "Unknown"}
-                Type: ${opportunity.type}
-                Is Rolling: ${opportunity.isRolling}
-                Current Deadline: ${if (opportunity.deadline != null) "Set" else "Not set"}
-
-                Similar Past Opportunities:
-                $similarOpsText
-
-                Based on:
-                1. Typical cycles for ${opportunity.category} opportunities
-                2. Similar programs' historical patterns
-                3. Academic year calendar (applications usually open in fall, summer programs open in spring)
-
-                Provide your prediction in JSON format:
-                {
-                  "predictedMonth": "September",
-                  "predictedYear": 2025,
-                  "confidence": "medium",
-                  "reasoning": "Most STEM competitions open applications in September...",
-                  "suggestedCheckDate": "August 15, 2025"
-                }
-            """.trimIndent()
-
-            val request = ChatCompletionRequest(
-                model = "gpt-3.5-turbo",
-                messages = listOf(
-                    ChatMessage(role = "system", content = "You are an expert on high school opportunity timelines and deadlines."),
-                    ChatMessage(role = "user", content = prompt)
-                ),
-                temperature = 0.5,
-                maxTokens = 400
-            )
-
-            val response = openAIService.createChatCompletion(request)
-
-            if (response.isSuccessful) {
-                val content = response.body()?.choices?.firstOrNull()?.message?.content
-                if (content != null) {
-                    val prediction = parseDeadlinePrediction(content)
-                    return Result.success(prediction)
-                }
-            }
-
-            return Result.failure(Exception("Failed to predict deadline"))
-
-        } catch (e: Exception) {
-            return Result.failure(e)
-        }
-    }
-
     private fun parseDeadlinePrediction(jsonContent: String): DeadlinePrediction {
         try {
             val jsonStart = jsonContent.indexOf('{')
@@ -620,6 +866,81 @@ class AIManager(private val context: Context) {
             confidence = "low",
             reasoning = "Unable to predict deadline",
             suggestedCheckDate = "Check organization website regularly"
+        )
+    }
+
+    private fun parseCollegeMatchPrediction(jsonContent: String): CollegeMatchPrediction {
+        try {
+            val jsonStart = jsonContent.indexOf('{')
+            val jsonEnd = jsonContent.lastIndexOf('}') + 1
+            if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                val gson = com.google.gson.Gson()
+                return gson.fromJson(
+                    jsonContent.substring(jsonStart, jsonEnd),
+                    CollegeMatchPrediction::class.java
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return CollegeMatchPrediction(
+            readinessScore = 50,
+            collegeTier = "match",
+            recommendedColleges = emptyList(),
+            strengths = emptyList(),
+            recommendations = listOf("Continue building your profile"),
+            analysis = "Unable to generate prediction"
+        )
+    }
+
+    private fun parseScholarshipCalculation(jsonContent: String): ScholarshipCalculation {
+        try {
+            val jsonStart = jsonContent.indexOf('{')
+            val jsonEnd = jsonContent.lastIndexOf('}') + 1
+            if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                val gson = com.google.gson.Gson()
+                return gson.fromJson(
+                    jsonContent.substring(jsonStart, jsonEnd),
+                    ScholarshipCalculation::class.java
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return ScholarshipCalculation(
+            totalPotential = 0,
+            meritBased = 0,
+            needBased = 0,
+            activityBased = 0,
+            topScholarships = emptyList(),
+            recommendations = listOf("Explore scholarship databases")
+        )
+    }
+
+    private fun parseROICalculation(jsonContent: String): ROICalculation {
+        try {
+            val jsonStart = jsonContent.indexOf('{')
+            val jsonEnd = jsonContent.lastIndexOf('}') + 1
+            if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                val gson = com.google.gson.Gson()
+                return gson.fromJson(
+                    jsonContent.substring(jsonStart, jsonEnd),
+                    ROICalculation::class.java
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return ROICalculation(
+            roiScore = 50,
+            financialValue = 0,
+            nonFinancialValue = "Medium",
+            timeInvestment = 0,
+            recommendation = "Consider your priorities",
+            reasoning = "Unable to calculate ROI"
         )
     }
 
@@ -702,7 +1023,7 @@ class AIManager(private val context: Context) {
      */
     suspend fun calculateScholarshipPotential(
         user: User,
-        commitments: List<Pair<Opportunity, Int>> // Opportunity with hours commitment
+        commitments: List<Pair<Opportunity, Int>>
     ): Result<ScholarshipCalculation> {
         if (!isApiKeyConfigured()) {
             return Result.failure(Exception("OpenAI API key not configured"))
@@ -854,20 +1175,18 @@ class AIManager(private val context: Context) {
         val reducedFee = mutableListOf<Opportunity>()
 
         for (opp in opportunities) {
-            // Check if has cost (use costMin as numeric value, or try to parse cost string)
             val costValue = opp.costMin?.toInt() ?: opp.cost?.toIntOrNull() ?: 0
 
             if (costValue > 0) {
-                // Simple heuristics - in real app would check actual eligibility
                 when {
                     opp.category == com.example.cac3.data.model.OpportunityCategory.COMPETITION -> {
-                        waiverEligible.add(opp) // Many competitions offer waivers
+                        waiverEligible.add(opp)
                     }
                     opp.scholarshipAvailable -> {
-                        reducedFee.add(opp) // Scholarship programs often have waivers
+                        reducedFee.add(opp)
                     }
                     costValue < 50 -> {
-                        reducedFee.add(opp) // Low cost might have waivers
+                        reducedFee.add(opp)
                     }
                 }
             }
@@ -877,7 +1196,7 @@ class AIManager(private val context: Context) {
             it.costMin?.toInt() ?: it.cost?.toIntOrNull() ?: 0
         } + (reducedFee.sumOf {
             it.costMin?.toInt() ?: it.cost?.toIntOrNull() ?: 0
-        } / 2) // Assume 50% reduction
+        } / 2)
 
         return FeeWaiverResult(
             waiverEligibleOpportunities = waiverEligible,
@@ -888,81 +1207,6 @@ class AIManager(private val context: Context) {
                 "Check if your school counselor can provide waivers",
                 "Look for opportunities marked 'scholarship available'"
             )
-        )
-    }
-
-    private fun parseCollegeMatchPrediction(jsonContent: String): CollegeMatchPrediction {
-        try {
-            val jsonStart = jsonContent.indexOf('{')
-            val jsonEnd = jsonContent.lastIndexOf('}') + 1
-            if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                val gson = com.google.gson.Gson()
-                return gson.fromJson(
-                    jsonContent.substring(jsonStart, jsonEnd),
-                    CollegeMatchPrediction::class.java
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return CollegeMatchPrediction(
-            readinessScore = 50,
-            collegeTier = "match",
-            recommendedColleges = emptyList(),
-            strengths = emptyList(),
-            recommendations = listOf("Continue building your profile"),
-            analysis = "Unable to generate prediction"
-        )
-    }
-
-    private fun parseScholarshipCalculation(jsonContent: String): ScholarshipCalculation {
-        try {
-            val jsonStart = jsonContent.indexOf('{')
-            val jsonEnd = jsonContent.lastIndexOf('}') + 1
-            if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                val gson = com.google.gson.Gson()
-                return gson.fromJson(
-                    jsonContent.substring(jsonStart, jsonEnd),
-                    ScholarshipCalculation::class.java
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return ScholarshipCalculation(
-            totalPotential = 0,
-            meritBased = 0,
-            needBased = 0,
-            activityBased = 0,
-            topScholarships = emptyList(),
-            recommendations = listOf("Explore scholarship databases")
-        )
-    }
-
-    private fun parseROICalculation(jsonContent: String): ROICalculation {
-        try {
-            val jsonStart = jsonContent.indexOf('{')
-            val jsonEnd = jsonContent.lastIndexOf('}') + 1
-            if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                val gson = com.google.gson.Gson()
-                return gson.fromJson(
-                    jsonContent.substring(jsonStart, jsonEnd),
-                    ROICalculation::class.java
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return ROICalculation(
-            roiScore = 50,
-            financialValue = 0,
-            nonFinancialValue = "Medium",
-            timeInvestment = 0,
-            recommendation = "Consider your priorities",
-            reasoning = "Unable to calculate ROI"
         )
     }
 }
@@ -1040,4 +1284,3 @@ data class FeeWaiverResult(
     val estimatedSavings: Int,
     val recommendations: List<String>
 )
-

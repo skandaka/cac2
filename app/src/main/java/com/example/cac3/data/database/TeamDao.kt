@@ -34,6 +34,9 @@ interface TeamDao {
     @Query("SELECT * FROM teams WHERE isOpen = 1 ORDER BY createdAt DESC LIMIT 20")
     fun getAllOpenTeams(): LiveData<List<Team>>
 
+    @Query("SELECT * FROM teams ORDER BY createdAt DESC")
+    suspend fun getAllTeamsSync(): List<Team>
+
     // Team Members
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTeamMember(member: TeamMember): Long
