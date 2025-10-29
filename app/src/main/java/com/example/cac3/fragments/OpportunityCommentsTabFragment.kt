@@ -92,6 +92,8 @@ class OpportunityCommentsTabFragment : Fragment() {
         val currentUserId = authManager.getCurrentUserId()
         adapter = CommentAdapter(
             currentUserId = currentUserId,
+            lifecycleOwner = viewLifecycleOwner,
+            getRepliesLiveData = { parentId -> database.commentDao().getRepliesForComment(parentId) },
             onEditClick = { comment -> showEditCommentDialog(comment) },
             onDeleteClick = { comment -> showDeleteConfirmation(comment) },
             onReplyClick = { comment -> showReplyDialog(comment) },
@@ -285,6 +287,16 @@ class OpportunityCommentsTabFragment : Fragment() {
         verifiedCheckbox.isChecked = verifiedOnly
         withResourcesCheckbox.isChecked = withResourcesOnly
         minRatingBar.rating = minRating.toFloat()
+        // Initialize label to current value
+        minRatingText.text = when {
+            minRatingBar.rating == 0f -> "No minimum"
+            minRatingBar.rating == 1f -> "1+ stars"
+            minRatingBar.rating == 2f -> "2+ stars"
+            minRatingBar.rating == 3f -> "3+ stars"
+            minRatingBar.rating == 4f -> "4+ stars"
+            minRatingBar.rating >= 5f -> "5 stars"
+            else -> "${minRatingBar.rating.toInt()}+ stars"
+        }
 
         // Select current insight type
         selectedInsightType?.let { type ->

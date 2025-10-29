@@ -322,6 +322,7 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 val checklist = checklistResult.getOrNull()
 
                 if (guidance != null || checklist != null) {
+                    // Show whatever we got
                     showGuidanceAndChecklistDialog(guidance, checklist)
                 } else {
                     // Get the actual error messages
@@ -330,16 +331,17 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     val errorMessage = guidanceError?.message ?: checklistError?.message ?: "Unknown error"
 
                     val displayMessage = when {
-                        errorMessage.contains("401") || errorMessage.contains("Unauthorized") ||
-                        errorMessage.contains("API key") -> {
+                        errorMessage.contains("401", ignoreCase = true) ||
+                        errorMessage.contains("Unauthorized", ignoreCase = true) ||
+                        errorMessage.contains("API key", ignoreCase = true) ->
                             "Invalid API key. Please check your OpenAI API key in Profile settings."
-                        }
-                        errorMessage.contains("429") || errorMessage.contains("rate limit") -> {
+                        errorMessage.contains("429") || errorMessage.contains("rate limit") ->
                             "Rate limit exceeded. Please try again in a few moments."
-                        }
-                        errorMessage.contains("Network") || errorMessage.contains("Connection") -> {
+                        errorMessage.contains("Network", ignoreCase = true) ||
+                        errorMessage.contains("Connection", ignoreCase = true) ->
                             "Network error. Please check your internet connection."
-                        }
+                        errorMessage.contains("timed out", ignoreCase = true) ->
+                            "The AI request timed out. Please try again."
                         else -> "Error generating guidance: $errorMessage"
                     }
 
@@ -348,7 +350,6 @@ class OpportunityDetailActivity : AppCompatActivity() {
                         .setMessage(displayMessage)
                         .setPositiveButton("OK", null)
                         .setNeutralButton("Configure API Key") { _, _ ->
-                            // Open profile to configure API key
                             Toast.makeText(this@OpportunityDetailActivity,
                                 "Go to Profile tab to configure your API key",
                                 Toast.LENGTH_LONG).show()
@@ -361,13 +362,17 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 e.printStackTrace()
 
                 val errorMessage = when {
-                    e.message?.contains("401") == true || e.message?.contains("API key") == true -> {
+                    e.message?.contains("401", ignoreCase = true) == true ||
+                    e.message?.contains("API key", ignoreCase = true) == true ->
                         "Invalid API key. Please check your OpenAI API key in Profile settings."
-                    }
-                    e.message?.contains("Network") == true -> {
+                    e.message?.contains("429") == true || e.message?.contains("rate limit") == true ->
+                        "Rate limit exceeded. Please try again in a few moments."
+                    e.message?.contains("Network", ignoreCase = true) == true ||
+                    e.message?.contains("Connection", ignoreCase = true) == true ->
                         "Network error. Please check your internet connection."
-                    }
-                    else -> "Error: ${e.message ?: "Unknown error"}"
+                    e.message?.contains("timed out", ignoreCase = true) == true ->
+                        "The AI request timed out. Please try again."
+                    else -> "Error: ${e.message}"
                 }
 
                 AlertDialog.Builder(this@OpportunityDetailActivity)
@@ -375,6 +380,8 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     .setMessage(errorMessage)
                     .setPositiveButton("OK", null)
                     .show()
+            } finally {
+                if (loadingDialog.isShowing) loadingDialog.dismiss()
             }
         }
     }
@@ -565,16 +572,17 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 }.onFailure { error ->
                     val errorMsg = error.message ?: "Unknown error"
                     val displayMessage = when {
-                        errorMsg.contains("401") || errorMsg.contains("Unauthorized") ||
-                        errorMsg.contains("API key") -> {
+                        errorMsg.contains("401", ignoreCase = true) ||
+                        errorMsg.contains("Unauthorized", ignoreCase = true) ||
+                        errorMsg.contains("API key", ignoreCase = true) ->
                             "Invalid API key. Please check your OpenAI API key in Profile settings."
-                        }
-                        errorMsg.contains("429") || errorMsg.contains("rate limit") -> {
+                        errorMsg.contains("429") || errorMsg.contains("rate limit") ->
                             "Rate limit exceeded. Please try again in a few moments."
-                        }
-                        errorMsg.contains("Network") || errorMsg.contains("Connection") -> {
+                        errorMsg.contains("Network", ignoreCase = true) ||
+                        errorMsg.contains("Connection", ignoreCase = true) ->
                             "Network error. Please check your internet connection."
-                        }
+                        errorMsg.contains("timed out", ignoreCase = true) ->
+                            "The AI request timed out. Please try again."
                         else -> "Error: $errorMsg"
                     }
 
@@ -595,13 +603,17 @@ class OpportunityDetailActivity : AppCompatActivity() {
                 e.printStackTrace()
 
                 val errorMessage = when {
-                    e.message?.contains("401") == true || e.message?.contains("API key") == true -> {
+                    e.message?.contains("401", ignoreCase = true) == true ||
+                    e.message?.contains("API key", ignoreCase = true) == true ->
                         "Invalid API key. Please check your OpenAI API key in Profile settings."
-                    }
-                    e.message?.contains("Network") == true -> {
+                    e.message?.contains("429") == true || e.message?.contains("rate limit") == true ->
+                        "Rate limit exceeded. Please try again in a few moments."
+                    e.message?.contains("Network", ignoreCase = true) == true ||
+                    e.message?.contains("Connection", ignoreCase = true) == true ->
                         "Network error. Please check your internet connection."
-                    }
-                    else -> "Error: ${e.message ?: "Unknown error"}"
+                    e.message?.contains("timed out", ignoreCase = true) == true ->
+                        "The AI request timed out. Please try again."
+                    else -> "Error: ${e.message}"
                 }
 
                 AlertDialog.Builder(this@OpportunityDetailActivity)
@@ -609,6 +621,8 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     .setMessage(errorMessage)
                     .setPositiveButton("OK", null)
                     .show()
+            } finally {
+                if (loadingDialog.isShowing) loadingDialog.dismiss()
             }
         }
     }
@@ -790,6 +804,8 @@ class OpportunityDetailActivity : AppCompatActivity() {
                     "Error predicting deadline",
                     Toast.LENGTH_SHORT
                 ).show()
+            } finally {
+                if (loadingDialog.isShowing) loadingDialog.dismiss()
             }
         }
     }

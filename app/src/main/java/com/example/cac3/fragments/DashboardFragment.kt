@@ -107,7 +107,8 @@ class DashboardFragment : Fragment() {
 
     private fun setupRefreshButton() {
         refreshRecommendationsButton.setOnClickListener {
-            loadRecommendations()
+            // Only call AI when user explicitly clicks refresh
+            loadAIRecommendations()
         }
     }
 
@@ -124,8 +125,8 @@ class DashboardFragment : Fragment() {
         // Load commitments
         loadCommitments(userId)
 
-        // Load recommendations
-        loadRecommendations()
+        // Load basic recommendations ONLY (fast, instant load)
+        loadBasicRecommendations()
     }
 
     private fun loadCommitments(userId: Long) {
@@ -182,11 +183,10 @@ class DashboardFragment : Fragment() {
         }
     }
 
-    private fun loadRecommendations() {
+    private fun loadBasicRecommendations() {
         lifecycleScope.launch {
             try {
                 val userId = authManager.getCurrentUserId()
-                val user = if (userId != -1L) database.userDao().getUserById(userId) else null
                 val allOpportunities = database.opportunityDao().getAllOpportunitiesSync()
 
                 // Get user's existing commitments to filter them out
@@ -200,15 +200,19 @@ class DashboardFragment : Fragment() {
                 // Filter out opportunities user is already committed to
                 val availableOpportunities = allOpportunities.filter { it.id !in committedOpportunityIds }
 
-                // Check if AI is configured
-                if (aiManager.isApiKeyConfigured() && user != null) {
-                    // Use AI-powered recommendations
-                    loadAIRecommendations(user, availableOpportunities)
+                // Use basic recommendations (instant, no AI call)
+                val userInterests = authManager.getCurrentUserInterests() ?: ""
+                val basicRecommendations = getBasicRecommendations(userInterests, availableOpportunities)
+                recommendationAdapter.submitList(basicRecommendations.take(10))
+
+                // Show refresh button to get AI recommendations
+                if (aiManager.isApiKeyConfigured()) {
+                    aiInsightsCard.visibility = View.VISIBLE
+                    refreshRecommendationsButton.visibility = View.VISIBLE
+                    recommendationsSubtitle.text = "Based on your interests • Click refresh for AI recommendations"
                 } else {
-                    // Fall back to basic recommendations
-                    val userInterests = authManager.getCurrentUserInterests() ?: ""
-                    val basicRecommendations = getBasicRecommendations(userInterests, availableOpportunities)
-                    recommendationAdapter.submitList(basicRecommendations.take(10))
+                    aiInsightsCard.visibility = View.GONE
+                    recommendationsSubtitle.text = "Based on your interests"
                 }
 
             } catch (e: Exception) {
@@ -216,55 +220,91 @@ class DashboardFragment : Fragment() {
                 Toast.makeText(
                     requireContext(),
                     "Error loading recommendations: ${e.message}",
-                    Toast.LENGTH_LONG
+                    Toast.LENGTH_SHORT
                 ).show()
             }
         }
     }
 
-    private suspend fun loadAIRecommendations(
-        user: com.example.cac3.data.model.User,
-        opportunities: List<Opportunity>
-    ) {
-        try {
-            // Show loading indicator and AI card
-            recommendationsLoadingBar.visibility = View.VISIBLE
-            aiInsightsCard.visibility = View.VISIBLE
-            refreshRecommendationsButton.visibility = View.VISIBLE
-            recommendationsSubtitle.text = "✨ AI-powered recommendations tailored to your profile"
+    private fun loadAIRecommendations() {
+        lifecycleScope.launch {
+            try {
+                val userId = authManager.getCurrentUserId()
+                val user = if (userId != -1L) database.userDao().getUserById(userId) else null
 
-            val result = aiManager.generateRecommendations(user, opportunities, maxResults = 10)
+                if (user == null) {
+                    Toast.makeText(requireContext(), "Please log in to get AI recommendations", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
 
-            recommendationsLoadingBar.visibility = View.GONE
+                val allOpportunities = database.opportunityDao().getAllOpportunitiesSync()
 
-            result.onSuccess { recommendations ->
-                val opportunityList = recommendations.map { it.opportunity }
-                recommendationAdapter.submitList(opportunityList)
+                // Get user's existing commitments to filter them out
+                val userCommitments = database.userDao().getUserCommitmentsSync(userId)
+                val committedOpportunityIds = userCommitments.map { it.opportunityId }.toSet()
 
+                // Filter out opportunities user is already committed to
+                val availableOpportunities = allOpportunities.filter { it.id !in committedOpportunityIds }
+
+                // Check cache first - instant load if available
+                val cached = aiManager.getCachedRecommendations(userId)
+                if (cached != null) {
+                    val opportunityList = cached.map { it.opportunity }
+                    recommendationAdapter.submitList(opportunityList)
+                    recommendationsSubtitle.text = "✨ AI-powered recommendations (cached)"
+                    Toast.makeText(
+                        requireContext(),
+                        "✨ Loaded ${opportunityList.size} AI recommendations from cache",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+
+                // Show loading indicator
+                recommendationsLoadingBar.visibility = View.VISIBLE
+                refreshRecommendationsButton.isEnabled = false
+                recommendationsSubtitle.text = "✨ Generating AI recommendations..."
+
+                // Call AI API
+                val result = aiManager.generateRecommendations(user, availableOpportunities, maxResults = 10, useCache = false)
+
+                recommendationsLoadingBar.visibility = View.GONE
+                refreshRecommendationsButton.isEnabled = true
+
+                result.onSuccess { recommendations ->
+                    val opportunityList = recommendations.map { it.opportunity }
+                    recommendationAdapter.submitList(opportunityList)
+                    recommendationsSubtitle.text = "✨ AI-powered recommendations"
+
+                    Toast.makeText(
+                        requireContext(),
+                        "✨ ${opportunityList.size} AI-powered recommendations loaded!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }.onFailure { error ->
+                    // Fall back to basic recommendations on error
+                    val userInterests = user.interests
+                    val basicRecommendations = getBasicRecommendations(userInterests, availableOpportunities)
+                    recommendationAdapter.submitList(basicRecommendations.take(10))
+                    recommendationsSubtitle.text = "Based on your interests (AI unavailable)"
+
+                    Toast.makeText(
+                        requireContext(),
+                        "AI error: ${error.message}. Using basic recommendations.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                recommendationsLoadingBar.visibility = View.GONE
+                refreshRecommendationsButton.isEnabled = true
                 Toast.makeText(
                     requireContext(),
-                    "✨ ${opportunityList.size} AI-powered recommendations loaded!",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }.onFailure { error ->
-                // Fall back to basic recommendations on error
-                aiInsightsCard.visibility = View.GONE
-                val userInterests = user.interests
-                val basicRecommendations = getBasicRecommendations(userInterests, opportunities)
-                recommendationAdapter.submitList(basicRecommendations.take(10))
-                recommendationsSubtitle.text = "Based on your interests (AI unavailable)"
-
-                Toast.makeText(
-                    requireContext(),
-                    "Using basic recommendations. AI error: ${error.message}",
+                    "Error: ${e.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            recommendationsLoadingBar.visibility = View.GONE
-            aiInsightsCard.visibility = View.GONE
         }
     }
 

@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * AI Manager - Handles all AI-powered features using OpenAI API
+ * Optimized for fast loading with caching and proper timeouts
  */
 class AIManager(private val context: Context) {
 
@@ -32,16 +33,29 @@ class AIManager(private val context: Context) {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: Exception) {
-            // Fallback to regular SharedPreferences if encryption fails
             context.getSharedPreferences("ai_prefs", Context.MODE_PRIVATE)
         }
+    }
+
+    // Cache for AI responses with timestamps
+    private data class CachedResponse<T>(
+        val data: T,
+        val timestamp: Long
+    )
+
+    private val recommendationsCache = mutableMapOf<String, CachedResponse<List<OpportunityRecommendation>>>()
+    private val CACHE_TTL = 5 * 60 * 1000L // 5 minutes
+
+    // Reuse Retrofit service instance
+    private val openAIService: OpenAIService by lazy {
+        createOpenAIService()
     }
 
     private fun createOpenAIService(): OpenAIService {
         val apiKey = getApiKey()
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC // Less verbose logging
         }
 
         val authInterceptor = Interceptor { chain ->
@@ -56,7 +70,9 @@ class AIManager(private val context: Context) {
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(90, TimeUnit.SECONDS)
             .build()
 
         return Retrofit.Builder()
@@ -95,13 +111,57 @@ class AIManager(private val context: Context) {
     }
 
     /**
+     * Check if cached recommendations exist and are fresh
+     */
+    fun hasCachedRecommendations(userId: Long): Boolean {
+        val cached = recommendationsCache["user_$userId"]
+        if (cached != null) {
+            val age = System.currentTimeMillis() - cached.timestamp
+            return age < CACHE_TTL
+        }
+        return false
+    }
+
+    /**
+     * Get cached recommendations if available
+     */
+    fun getCachedRecommendations(userId: Long): List<OpportunityRecommendation>? {
+        val cached = recommendationsCache["user_$userId"]
+        if (cached != null) {
+            val age = System.currentTimeMillis() - cached.timestamp
+            if (age < CACHE_TTL) {
+                return cached.data
+            } else {
+                recommendationsCache.remove("user_$userId")
+            }
+        }
+        return null
+    }
+
+    /**
+     * Clear recommendation cache for a user
+     */
+    fun clearRecommendationCache(userId: Long) {
+        recommendationsCache.remove("user_$userId")
+    }
+
+    /**
      * Generate AI-powered opportunity recommendations
      */
     suspend fun generateRecommendations(
         user: User,
         opportunities: List<Opportunity>,
-        maxResults: Int = 10
+        maxResults: Int = 10,
+        useCache: Boolean = true
     ): Result<List<OpportunityRecommendation>> {
+        // Check cache first if enabled
+        if (useCache) {
+            val cached = getCachedRecommendations(user.id)
+            if (cached != null) {
+                return Result.success(cached)
+            }
+        }
+
         if (!isApiKeyConfigured()) {
             return Result.failure(Exception("OpenAI API key not configured"))
         }
@@ -145,17 +205,24 @@ class AIManager(private val context: Context) {
                 maxTokens = 1000
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
                 if (content != null) {
                     val recommendations = parseRecommendations(content, opportunities)
+
+                    // Cache the results
+                    recommendationsCache["user_${user.id}"] = CachedResponse(
+                        data = recommendations,
+                        timestamp = System.currentTimeMillis()
+                    )
+
                     return Result.success(recommendations)
                 }
             }
 
-            return Result.failure(Exception("Failed to generate recommendations"))
+            return Result.failure(Exception("Failed to generate recommendations: ${response.errorBody()?.string()}"))
 
         } catch (e: Exception) {
             return Result.failure(e)
@@ -201,7 +268,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -268,7 +335,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 500
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -330,7 +397,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -374,10 +441,8 @@ class AIManager(private val context: Context) {
         jsonContent: String,
         opportunities: List<Opportunity>
     ): List<OpportunityRecommendation> {
-        // Simple parsing - in production, use proper JSON parsing
         val recommendations = mutableListOf<OpportunityRecommendation>()
 
-        // Extract JSON array from response
         val jsonStart = jsonContent.indexOf('[')
         val jsonEnd = jsonContent.lastIndexOf(']') + 1
         if (jsonStart >= 0 && jsonEnd > jsonStart) {
@@ -391,7 +456,6 @@ class AIManager(private val context: Context) {
                     val score = (item["score"] as? Double)?.toInt() ?: 50
                     val reason = item["reason"] as? String ?: ""
 
-                    // Find matching opportunity
                     val opportunity = opportunities.find { it.title.equals(title, ignoreCase = true) }
                     if (opportunity != null) {
                         recommendations.add(
@@ -426,7 +490,6 @@ class AIManager(private val context: Context) {
             e.printStackTrace()
         }
 
-        // Default fallback
         return SuccessProbability(
             probability = 50,
             confidence = "medium",
@@ -518,7 +581,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 400
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -617,7 +680,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -690,7 +753,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 800
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -763,7 +826,7 @@ class AIManager(private val context: Context) {
                 maxTokens = 600
             )
 
-            val response = createOpenAIService().createChatCompletion(request)
+            val response = openAIService.createChatCompletion(request)
 
             if (response.isSuccessful) {
                 val content = response.body()?.choices?.firstOrNull()?.message?.content
@@ -977,3 +1040,4 @@ data class FeeWaiverResult(
     val estimatedSavings: Int,
     val recommendations: List<String>
 )
+

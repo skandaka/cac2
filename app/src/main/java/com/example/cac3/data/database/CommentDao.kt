@@ -17,6 +17,12 @@ interface CommentDao {
     @Query("SELECT * FROM comments WHERE parentCommentId = :parentCommentId ORDER BY createdAt ASC")
     fun getRepliesForComment(parentCommentId: Long): LiveData<List<Comment>>
 
+    @Query("SELECT * FROM comments WHERE parentCommentId = :parentCommentId ORDER BY createdAt ASC")
+    suspend fun getRepliesForCommentSync(parentCommentId: Long): List<com.example.cac3.data.model.Comment>
+
+    @Query("SELECT * FROM comments WHERE parentCommentId IN (:parentIds) ORDER BY createdAt ASC")
+    suspend fun getRepliesForParents(parentIds: List<Long>): List<com.example.cac3.data.model.Comment>
+
     @Query("SELECT COUNT(*) FROM comments WHERE parentCommentId = :parentCommentId")
     suspend fun getReplyCount(parentCommentId: Long): Int
 

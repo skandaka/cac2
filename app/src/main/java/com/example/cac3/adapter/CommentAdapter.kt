@@ -3,7 +3,13 @@ package com.example.cac3.adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+ import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.RatingBar
 import android.widget.TextView
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -11,14 +17,14 @@ import com.example.cac3.R
 import com.example.cac3.data.model.Comment
 import com.example.cac3.data.model.InsightType
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-/**
- * Adapter for displaying comments in a RecyclerView
- */
 class CommentAdapter(
     private val currentUserId: Long,
+    private val lifecycleOwner: LifecycleOwner,
+    private val getRepliesLiveData: (Long) -> LiveData<List<Comment>>,
     private val onEditClick: (Comment) -> Unit,
     private val onDeleteClick: (Comment) -> Unit,
     private val onReplyClick: (Comment) -> Unit,
@@ -28,57 +34,82 @@ class CommentAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_comment, parent, false)
-        return CommentViewHolder(view, currentUserId, onEditClick, onDeleteClick, onReplyClick, onUpvoteClick)
+        return CommentViewHolder(
+            itemView = view,
+            currentUserId = currentUserId,
+            lifecycleOwner = lifecycleOwner,
+            getRepliesLiveData = getRepliesLiveData,
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick,
+            onReplyClick = onReplyClick,
+            onUpvoteClick = onUpvoteClick
+        )
     }
 
     override fun onBindViewHolder(holder: CommentViewHolder, position: Int) {
-        val comment = getItem(position)
-        holder.bind(comment)
+        holder.bind(getItem(position))
+    }
+
+    override fun onViewRecycled(holder: CommentViewHolder) {
+        super.onViewRecycled(holder)
+        holder.clearRepliesObserver()
     }
 
     class CommentViewHolder(
         itemView: View,
         private val currentUserId: Long,
+        private val lifecycleOwner: LifecycleOwner,
+        private val getRepliesLiveData: (Long) -> LiveData<List<Comment>>,
         private val onEditClick: (Comment) -> Unit,
         private val onDeleteClick: (Comment) -> Unit,
         private val onReplyClick: (Comment) -> Unit,
         private val onUpvoteClick: (Comment) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
+
+        // Top-level comment views
         private val userNameTextView: TextView = itemView.findViewById(R.id.userNameTextView)
         private val userGradeTextView: TextView = itemView.findViewById(R.id.userGradeTextView)
         private val verifiedBadge: TextView = itemView.findViewById(R.id.verifiedBadge)
         private val insightTypeBadge: TextView = itemView.findViewById(R.id.insightTypeBadge)
         private val ratingLayout: View = itemView.findViewById(R.id.ratingLayout)
-        private val commentRatingBar: android.widget.RatingBar = itemView.findViewById(R.id.commentRatingBar)
-        private val ratingTextView: TextView = itemView.findViewById(R.id.ratingTextView)
         private val commentTextView: TextView = itemView.findViewById(R.id.commentTextView)
+        private val commentRatingBar: RatingBar = itemView.findViewById(R.id.commentRatingBar)
+        private val ratingTextView: TextView = itemView.findViewById(R.id.ratingTextView)
         private val resourceLinksLayout: View = itemView.findViewById(R.id.resourceLinksLayout)
         private val resourceLinksTextView: TextView = itemView.findViewById(R.id.resourceLinksTextView)
         private val timestampTextView: TextView = itemView.findViewById(R.id.timestampTextView)
         private val upvoteCountTextView: TextView = itemView.findViewById(R.id.upvoteCountTextView)
         private val replyButton: TextView = itemView.findViewById(R.id.replyButton)
-        private val editButton: android.widget.ImageButton = itemView.findViewById(R.id.editButton)
-        private val deleteButton: android.widget.ImageButton = itemView.findViewById(R.id.deleteButton)
+        private val editButton: ImageButton = itemView.findViewById(R.id.editButton)
+        private val deleteButton: ImageButton = itemView.findViewById(R.id.deleteButton)
+        private val repliesContainer: LinearLayout = itemView.findViewById(R.id.repliesContainer)
 
-        private val prefs = itemView.context.getSharedPreferences("comment_upvotes", android.content.Context.MODE_PRIVATE)
+        // Replies observation management
+        private var observedParentId: Long? = null
+        private var repliesLiveData: LiveData<List<Comment>>? = null
+        private var repliesObserver: Observer<List<Comment>>? = null
 
         fun bind(comment: Comment) {
+            // Reset replies UI for recycling
+            repliesContainer.removeAllViews()
+            repliesContainer.visibility = View.GONE
+
             // User name and grade
             userNameTextView.text = comment.userName
-
-            if (comment.userGrade != null) {
-                userGradeTextView.text = "Grade ${comment.userGrade}"
+            val grade = comment.userGrade
+            if (grade != null && grade > 0) {
+                userGradeTextView.text = "Grade $grade"
                 userGradeTextView.visibility = View.VISIBLE
             } else {
                 userGradeTextView.visibility = View.GONE
             }
 
-            // Verified participant badge
-            if (comment.isVerifiedParticipant) {
-                verifiedBadge.visibility = View.VISIBLE
-            } else {
-                verifiedBadge.visibility = View.GONE
-            }
+            // Verified badge
+            verifiedBadge.visibility = if (comment.isVerifiedParticipant) View.VISIBLE else View.GONE
+
+            // Insight type badge
+            insightTypeBadge.text = formatInsightType(comment.insightType)
+            insightTypeBadge.setBackgroundColor(getInsightTypeColor(comment.insightType))
 
             // Comment text
             commentTextView.text = comment.comment
@@ -92,75 +123,86 @@ class CommentAdapter(
                 ratingLayout.visibility = View.GONE
             }
 
-            // Resource links
-            if (comment.hasResources && !comment.resourceLinks.isNullOrEmpty()) {
+            // Resources
+            if (!comment.resourceLinks.isNullOrEmpty()) {
                 resourceLinksLayout.visibility = View.VISIBLE
                 resourceLinksTextView.text = comment.resourceLinks
             } else {
                 resourceLinksLayout.visibility = View.GONE
             }
 
-            // Timestamp and upvotes
+            // Timestamp
             timestampTextView.text = getTimeAgo(comment.createdAt)
 
-            // Check if user has already marked this as helpful
-            val hasUpvoted = prefs.getBoolean("upvoted_${comment.id}", false)
-            updateUpvoteUI(comment, hasUpvoted)
+            // Upvote UI
+            upvoteCountTextView.text = if (comment.upvotes > 0) {
+                "${comment.upvotes} helpful · Mark as Helpful"
+            } else {
+                "Mark as Helpful"
+            }
+            upvoteCountTextView.setOnClickListener { onUpvoteClick(comment) }
 
-            // Set insight type badge
-            insightTypeBadge.text = formatInsightType(comment.insightType)
-            insightTypeBadge.setBackgroundColor(getInsightTypeColor(comment.insightType))
-
-            // Show edit/delete buttons only if current user owns this comment
+            // Ownership actions
             val isOwnComment = comment.userId != null && comment.userId == currentUserId
             editButton.visibility = if (isOwnComment) View.VISIBLE else View.GONE
             deleteButton.visibility = if (isOwnComment) View.VISIBLE else View.GONE
 
-            // Set click listeners
-            upvoteCountTextView.setOnClickListener {
-                if (!hasUpvoted) {
-                    // Mark as upvoted
-                    prefs.edit().putBoolean("upvoted_${comment.id}", true).apply()
-                    updateUpvoteUI(comment, true)
-                    onUpvoteClick(comment)
-                } else {
-                    // Already voted
-                    android.widget.Toast.makeText(
-                        itemView.context,
-                        "You already marked this as helpful",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            replyButton.setOnClickListener { onReplyClick(comment) }
             editButton.setOnClickListener { onEditClick(comment) }
             deleteButton.setOnClickListener { onDeleteClick(comment) }
+            replyButton.setOnClickListener { onReplyClick(comment) }
+
+            // Observe and render replies for top-level comments only
+            if (comment.parentCommentId == null) {
+                observeReplies(comment.id)
+            } else {
+                clearRepliesObserver()
+                repliesContainer.visibility = View.GONE
+            }
         }
 
-        private fun updateUpvoteUI(comment: Comment, hasUpvoted: Boolean) {
-            if (hasUpvoted) {
-                // User has voted - show filled star and count
-                upvoteCountTextView.text = if (comment.upvotes > 0) {
-                    "${comment.upvotes} found helpful"
-                } else {
-                    "1 found helpful"
-                }
-                upvoteCountTextView.setTextColor(itemView.context.getColor(R.color.accent))
-                upvoteCountTextView.setCompoundDrawablesWithIntrinsicBounds(
-                    android.R.drawable.star_big_on, 0, 0, 0
-                )
-            } else {
-                // User hasn't voted - show outline star and prompt
-                upvoteCountTextView.text = if (comment.upvotes > 0) {
-                    "${comment.upvotes} helpful · Mark as Helpful"
-                } else {
-                    "Mark as Helpful"
-                }
-                upvoteCountTextView.setTextColor(itemView.context.getColor(R.color.text_secondary))
-                upvoteCountTextView.setCompoundDrawablesWithIntrinsicBounds(
-                    android.R.drawable.star_big_off, 0, 0, 0
-                )
+        private fun observeReplies(parentId: Long) {
+            if (observedParentId == parentId && repliesObserver != null) {
+                // Already observing this parent; no-op. We'll still refresh the current list from LiveData value if present
+                return
             }
+            // Switch observation to new parent
+            clearRepliesObserver()
+            observedParentId = parentId
+            repliesLiveData = getRepliesLiveData(parentId)
+            val observer = Observer<List<Comment>> { replies ->
+                renderReplies(replies)
+            }
+            repliesObserver = observer
+            repliesLiveData?.observe(lifecycleOwner, observer)
+        }
+
+        private fun renderReplies(replies: List<Comment>?) {
+            repliesContainer.removeAllViews()
+            if (replies.isNullOrEmpty()) {
+                repliesContainer.visibility = View.GONE
+                return
+            }
+            repliesContainer.visibility = View.VISIBLE
+            val inflater = LayoutInflater.from(itemView.context)
+            for (reply in replies) {
+                val view = inflater.inflate(R.layout.item_reply, repliesContainer, false)
+                val replyUserName = view.findViewById<TextView>(R.id.replyUserName)
+                val replyTimestamp = view.findViewById<TextView>(R.id.replyTimestamp)
+                val replyText = view.findViewById<TextView>(R.id.replyText)
+
+                replyUserName.text = reply.userName
+                replyTimestamp.text = getTimeAgo(reply.createdAt)
+                replyText.text = reply.comment
+
+                repliesContainer.addView(view)
+            }
+        }
+
+        fun clearRepliesObserver() {
+            repliesLiveData?.removeObservers(lifecycleOwner)
+            repliesObserver = null
+            repliesLiveData = null
+            observedParentId = null
         }
 
         private fun formatInsightType(type: InsightType): String {
@@ -200,32 +242,22 @@ class CommentAdapter(
         private fun getTimeAgo(timestamp: Long): String {
             val now = System.currentTimeMillis()
             val diff = now - timestamp
-
             val seconds = TimeUnit.MILLISECONDS.toSeconds(diff)
             val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
             val hours = TimeUnit.MILLISECONDS.toHours(diff)
             val days = TimeUnit.MILLISECONDS.toDays(diff)
-
             return when {
                 seconds < 60 -> "Just now"
                 minutes < 60 -> "$minutes min ago"
                 hours < 24 -> "$hours hours ago"
                 days < 30 -> "$days days ago"
-                else -> {
-                    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
-                    dateFormat.format(Date(timestamp))
-                }
+                else -> SimpleDateFormat("MMM dd, yyyy", Locale.US).format(Date(timestamp))
             }
         }
     }
 
     class CommentDiffCallback : DiffUtil.ItemCallback<Comment>() {
-        override fun areItemsTheSame(oldItem: Comment, newItem: Comment): Boolean {
-            return oldItem.id == newItem.id
-        }
-
-        override fun areContentsTheSame(oldItem: Comment, newItem: Comment): Boolean {
-            return oldItem == newItem
-        }
+        override fun areItemsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: Comment, newItem: Comment): Boolean = oldItem == newItem
     }
 }
